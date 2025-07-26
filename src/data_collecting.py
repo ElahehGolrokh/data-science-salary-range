@@ -43,12 +43,16 @@ class Crawler:
             print('url = ', self.url)
             driver.get(self.url)
             print('Page title:', driver.title)
-            elements = driver.find_elements(By.XPATH,
-            "//*[starts-with(@class, 'company-jobs-preview-card_companyJobTitle')]")
-            print('len elements = ', len(elements))
+            a_tags = driver.find_elements(By.XPATH,
+            "//*[starts-with(@class, 'company-jobs-preview-card_companyJobsContainer')]//a")
+            print('len a_tags = ', len(a_tags))
+            job_links = []
             # Extract and print their text content
-            for i, el in enumerate(elements):
-                print(f"{i}th element: {el.text}")
+            for a in a_tags:
+                if a:
+                    href = a.get_attribute("href")
+                    job_links.append(href)
+            print('job_links = ', job_links)
 
         except Exception as e:
             print('Exception:', e)
