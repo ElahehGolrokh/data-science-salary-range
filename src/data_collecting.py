@@ -4,6 +4,9 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+import os
+import pandas as pd
 import time
 import requests
 
@@ -26,6 +29,7 @@ class Crawler:
 
     Private Methods
     --------------
+    _save_data()
     _get_links()
     _url_exists()
     """
@@ -57,6 +61,7 @@ class Crawler:
 
         try:
             job_links = self._get_links(driver)
+            self._save_data()
             print('job_links lenght, final version = ', len(job_links))
 
         except Exception as e:
@@ -67,6 +72,12 @@ class Crawler:
             driver.quit()
             print("Selenium browser closed.")
     
+    def _save_data(self):
+        df = pd.DataFrame()
+        if not os.path.exists('/data'):
+            os.mkdir('data')
+        df.to_csv('data/raw_data.csv')
+
     def _get_links(self, driver):
         job_links = set()
         for page in range(1, self.pages + 1):

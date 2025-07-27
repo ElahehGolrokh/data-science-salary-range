@@ -2,7 +2,7 @@
 from src.data_collecting import Crawler
 
 
-PAGES = 200
+PAGES = 3
 
 
 def main():
