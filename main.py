@@ -1,8 +1,8 @@
 
-from src.data_collecting import Crawler
+from src.data_collecting_firefox import Crawler
+import pandas as pd
 
-
-PAGES = 3
+PAGES = 2
 
 
 def main():
