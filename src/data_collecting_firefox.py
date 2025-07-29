@@ -14,6 +14,30 @@ import requests
 COLUMNS = ['url', 'job_title', 'seniority_level', 'role', 'status', 'company', 'location', 'post_date', 'headquarter', 'company_description', 'industry', 'exprience', 'ownership', 'company_size', 'revenue', 'salary']
 
 class Crawler:
+    """
+    Crawles the url with selenium 
+
+    ...
+    Attributes
+    ----------
+        browser: comes from selenium:
+                 >>> webdriver.Chrome()
+        pages: max number of pages for seeking for jobs
+        url: website url
+
+    Public Methods
+    --------------
+    run()
+
+    Private Methods
+    --------------
+    _save_data()
+    _get_links()
+    _extract_all_job_details()
+    _extract_job_detail()
+    _url_exists()
+    """
+
     def __init__(self, pages: int, url: str) -> None:
         self.pages = pages
         self.url = url
@@ -22,6 +46,8 @@ class Crawler:
         self.jobs_df = pd.DataFrame(columns=COLUMNS)
 
     def run(self) -> dict:
+        """
+        """
         options = Options()
         options.headless = True  # Set to False if you want to see the browser
         driver = webdriver.Firefox(options=options)  # Assumes geckodriver is in PATH
@@ -51,8 +77,8 @@ class Crawler:
             if self._url_exists(url):
                 driver.get(url)
                 time.sleep(5)
-                self.close_popup(driver)
-                self.accept_cookies(driver)
+                self._close_popup(driver)
+                self._accept_cookies(driver)
                 WebDriverWait(driver, 20).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//*[contains(@class,'company-jobs-preview-card_companyJobsContainer')]")
@@ -103,8 +129,7 @@ class Crawler:
     def _extract_job_detail(self, driver, url):
         driver.get(url)
         time.sleep(5)
-        # self.close_popup(driver)
-        # self.accept_cookies(driver)
+
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
         job_title = driver.find_element(By.XPATH, '//h1').text
         seniority_levels = ['sr', 'senior', 'jr', 'junior', 'mid-level', 'intern']
@@ -174,6 +199,7 @@ class Crawler:
 
     @staticmethod
     def _url_exists(url):
+        """Checks whether the url exists"""
         try:
             response = requests.head(url, allow_redirects=True, timeout=5)
             return response.status_code == 200
@@ -181,7 +207,7 @@ class Crawler:
             return False
     
     @staticmethod
-    def accept_cookies(driver):
+    def _accept_cookies(driver):
         try:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//button[text()='Accept All']"))
@@ -191,7 +217,7 @@ class Crawler:
             print("No cookies banner found.")
 
     @staticmethod
-    def close_popup(driver):
+    def _close_popup(driver):
         try:
             close_btn = driver.find_element(By.XPATH, "//*[contains(@class, 'closeButton')]")
             close_btn.click()
