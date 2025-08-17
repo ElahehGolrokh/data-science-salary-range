@@ -1,4 +1,4 @@
-data/
+private_files/
 venv/
 src/__pycache__
 config.yaml
