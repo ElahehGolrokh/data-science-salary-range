@@ -83,9 +83,18 @@ Open and run the feature engineering notebook:
 Notebooks/data_science_salary_feature_engineering_Public_data.ipynb
 ```
 
+## 🔹 3. Exploratory Data Analysis (EDA)  
+
+### 🎯 Goal  
+To analyze trends in job roles, seniority levels, industries, required skills, and compensation.  
+
+### ⚙️ Technical Details  
+- Implemented in: `Notebooks/data_science_salary_EDA.ipynb`  
+- **Input**: `data/df_feature_engineered.csv`  
+
+
 ## 📌 Next Steps  
  
-- EDA
 - Preprocessing for machine learning readiness
 - Model training for salary prediction
 - Inferential analysis for confidence intervals
