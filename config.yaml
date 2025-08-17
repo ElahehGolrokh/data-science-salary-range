@@ -1,0 +1,10 @@
+version: '1.0.0'
+
+seed: 42
+
+url: 'https://www.levels.fyi/jobs?from=subnav&jobFamilySlugs=data-scientist%2Cdata-analyst'
+pages: 500
+
+paths:
+  raw_data: 'data/raw_data.csv'
+  processed_data: 'data/processed_data.csv'
