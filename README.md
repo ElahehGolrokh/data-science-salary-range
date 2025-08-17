@@ -3,7 +3,7 @@
 This project builds a **data pipeline for estimating salaries for data science jobs** by scraping, cleaning, and enriching job postings from company websites and job boards. The end goal is to create a structured repository that can be used for **analytics, salary prediction, and trend analysis**.  
 
 > ⚠️ **Note on Data Privacy**  
-> To respect the privacy policy of the source platforms, we do **not disclose the exact websites** being scraped. Furthermore, the extracted data is **manipulated, cleaned, and transformed** before being published here to avoid sharing raw proprietary content.  
+> To respect the privacy policy of the source platforms, we do **not disclose the exact websites** being scraped. Furthermore, the extracted data is **manipulated, cleaned, and transformed** before being published here to avoid sharing raw proprietary content.  The file stored at data/raw_df.csv is therefore a transformed version of the initial scraped data to respect the source privacy policy. 
 
 ---
 
@@ -62,11 +62,31 @@ Arguments:
 
 - --url → Starting job board URL
 
-## 📌 Next Steps  
+## 🔹 2. Feature Engineering Phase  
 
-- Cleaning and enrichment of scraped data  
-- Extraction of experience requirements, technical skills, and industry classification  
-- Preparing the dataset for downstream **EDA & modeling** 
+### 🎯 Goal  
+To enrich the raw scraped data with structured features suitable for analysis and EDA.  
+
+### ⚙️ Technical Details  
+- Implemented in: `Notebooks/data_science_salary_feature_engineering_Public_data.ipynb`  
+- **Input**: `data/raw_df.csv` (transformed scraped data)  
+- **Output**: `data/df_feature_engineered.csv` (enriched dataset)
+-  **Steps**:
+  - Removing jobs posted more than 1 year ago  
+  - Fixing the mixed columns for jobs in which the company description has not the entire information, means ownership, company_size and revenue
+  - Transforming location and headquarter features to extract and preserve only the continent (Canada & US
+  which have the most number of job posts are preserved as the country)
+  - Transforming salary and extract the mean_salary 
+
+### ▶️ Usage  
+Open and run the feature engineering notebook:  
+```bash
+Notebooks/data_science_salary_feature_engineering_Public_data.ipynb
+```
+
+## 📌 Next Steps  
+ 
+- EDA
 - Preprocessing for machine learning readiness
 - Model training for salary prediction
 - Inferential analysis for confidence intervals
