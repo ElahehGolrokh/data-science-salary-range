@@ -23,6 +23,7 @@ class Crawler:
                  >>> webdriver.Chrome()
         pages: max number of pages for seeking for jobs
         url: website url
+        file_path: file path for saving data
 
     Public Methods
     --------------
@@ -39,9 +40,10 @@ class Crawler:
     _close_popup()
     """
 
-    def __init__(self, pages: int, url: str) -> None:
+    def __init__(self, pages: int, url: str, file_path: str) -> None:
         self.pages = pages
         self.url = url
+        self.file_path = file_path
         self.job_links = []
         self.jobs_df = pd.DataFrame(columns=COLUMNS)
 
@@ -67,7 +69,7 @@ class Crawler:
     def _save_data(self):
         if not os.path.exists('data'):
             os.mkdir('data')
-        self.jobs_df.to_csv('data/raw_data.csv')
+        self.jobs_df.to_csv(self.file_path)
 
     def _get_links(self, driver):
         job_links = set()

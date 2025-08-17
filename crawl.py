@@ -1,8 +1,8 @@
 import argparse
-from src.data_collecting_firefox import Crawler
 
+from omegaconf import OmegaConf
+from data_collecting import Crawler
 
-BASE_URL = ("https://www.levels.fyi/jobs?from=subnav&jobFamilySlugs=data-scientist%2Cdata-analyst")
 
 parser = argparse.ArgumentParser(
     prog='main.py',
@@ -12,18 +12,19 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-p', '--pages', help='set number of pages to scrape')
 parser.add_argument('-u', '--url', help='set the base URL for scraping')
+parser.add_argument('-fp', '--file_path', help='set the file path for saving data')
+
 
 args = parser.parse_args()
 
-PAGES = int(args.pages) if args.pages else 500
-URL = args.url if args.url else BASE_URL
+config = OmegaConf.load('config.yaml')
+PAGES = int(args.pages) if args.pages else config.pages
+URL = args.url if args.url else config.url
+FILE_PATH = args.file_path if args.file_path else config.paths.raw_data
 
-
-def main(pages, url):
-    # url = 'https://www.levels.fyi/jobs/title/data-scientist'
-    url = 'https://www.levels.fyi/jobs?from=subnav&jobFamilySlugs=data-scientist%2Cdata-analyst'
-    Crawler(pages, url).run()
+def main(pages, url, file_path):
+    Crawler(pages, url, file_path).run()
 
 
 if __name__ == '__main__':
-    main(pages=PAGES, url=URL)
+    main(pages=PAGES, url=URL, file_path=FILE_PATH)
