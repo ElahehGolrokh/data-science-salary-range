@@ -2,7 +2,7 @@ version: '1.0.0'
 
 seed: 42
 
-url: 'https://www.levels.fyi/jobs?from=subnav&jobFamilySlugs=data-scientist%2Cdata-analyst'
+url: 'https://www.example.com/jobs'
 pages: 500
 
 paths:
