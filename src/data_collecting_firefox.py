@@ -6,12 +6,11 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import os
 import pandas as pd
-import pdb
 import time
 import requests
 
 
-COLUMNS = ['url', 'job_title', 'seniority_level', 'role', 'status', 'company', 'location', 'post_date', 'headquarter', 'company_description', 'industry', 'exprience', 'ownership', 'company_size', 'revenue', 'salary']
+COLUMNS = ['url', 'job_title', 'seniority_level', 'role', 'status', 'company', 'location', 'post_date', 'headquarter', 'company_description', 'industry', 'exprience', 'ownership', 'company_size', 'revenue', 'job_description', 'salary']
 
 class Crawler:
     """
@@ -36,13 +35,14 @@ class Crawler:
     _extract_all_job_details()
     _extract_job_detail()
     _url_exists()
+    _accept_cookies()
+    _close_popup()
     """
 
     def __init__(self, pages: int, url: str) -> None:
         self.pages = pages
         self.url = url
         self.job_links = []
-        self.job_data = []
         self.jobs_df = pd.DataFrame(columns=COLUMNS)
 
     def run(self) -> dict:
@@ -73,23 +73,26 @@ class Crawler:
         job_links = set()
         for page in range(1, self.pages + 1):
             url = self.url if page == 1 else f'{self.url}?from=subnav&offset={(page - 1) * 5}'
-            print(f'page = {page}, url = {url}')
             if self._url_exists(url):
                 driver.get(url)
-                time.sleep(5)
-                self._close_popup(driver)
-                self._accept_cookies(driver)
-                WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//*[contains(@class,'company-jobs-preview-card_companyJobsContainer')]")
+                time.sleep(3)
+                if page == 1:
+                    self._close_popup(driver)
+                    self._accept_cookies(driver)
+                try:
+                    WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//*[contains(@class,'company-jobs-preview-card_companyJobsContainer')]")
+                        )
                     )
-                )
-
-                cards = driver.find_elements(
-                    By.XPATH,
-                    "//*[contains(@class,'company-jobs-preview-card_companyJobsContainer')]"
-                )
-                print(f"Page {page}: Found {len(cards)} cards")
+                    cards = driver.find_elements(
+                        By.XPATH,
+                        "//*[contains(@class,'company-jobs-preview-card_companyJobsContainer')]"
+                    )
+                    print(f"Page {page}: Found {len(cards)} cards")
+                except:
+                    print(f'No more jobs found. The last page = {page - 1}')
+                    break
 
                 for card in cards:
                     cls = card.get_attribute("class")
@@ -103,32 +106,39 @@ class Crawler:
                             pass
 
                 # Locate the scrollable container (e.g. job details pane)
-                scrollable_div = driver.find_element(
-                    By.XPATH,
-                    "//*[starts-with(@class, 'jobs-directory-body_companiesListContainer')]"
-                )
+                # scrollable_div = driver.find_element(
+                #     By.XPATH,
+                #     "//*[starts-with(@class, 'jobs-directory-body_companiesListContainer')]"
+                # )
                 # Scroll to bottom
-                driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scrollable_div)
-                time.sleep(2)
+                # driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scrollable_div)
+                # time.sleep(2)
             else:
                 print(f'The last page = {page - 1}')
                 break
         return list(job_links)
 
     def _extract_all_job_details(self, driver):
-
-        for link in self.job_links:
+        start_time = time.time()
+        for i, link in enumerate(self.job_links):
+            if i % 50 == 0:
+                elapsed = time.time() - start_time
+                print(f"Time spent on {i/50}th 50 iterations: {elapsed:.2f} seconds")
+                start_time = time.time()  # reset timer
             try:
                 data = self._extract_job_detail(driver, link)
                 if data:
                     self.jobs_df = pd.concat([self.jobs_df, pd.DataFrame([data])], ignore_index=True)
             except Exception as e:
                 print(f"Failed to extract data from {link}: {e}")
-        print(self.jobs_df.head())
+
+        print('----------------------------------')
+        for col in self.jobs_df.columns:
+            print(f"{col}: {self.jobs_df[col].iloc[0]}")
 
     def _extract_job_detail(self, driver, url):
         driver.get(url)
-        time.sleep(5)
+        time.sleep(3)
 
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
         job_title = driver.find_element(By.XPATH, '//h1').text
@@ -143,6 +153,15 @@ class Crawler:
         location = '.'.join(subheader_info.split("·")[2:]).strip()
         statuses = ['hybrid', 'remote', 'on-site']
         status = next((s for s in statuses if s in subheader_info.lower()), None)
+
+        try:
+            job_description_div = driver.find_element(
+                By.XPATH,
+                '//div[contains(@class, "job-details-about_plainTextDescription") or contains(@class, "job-details-about_showAll")]'
+            )
+            job_description = job_description_div.text
+        except:
+            job_description = None
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH,
@@ -194,6 +213,7 @@ class Crawler:
             'ownership': ownership,
             'company_size': company_size,
             'revenue': revenue,
+            'job_description': job_description,
             'salary': salary
         }
 
