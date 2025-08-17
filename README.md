@@ -71,12 +71,11 @@ To enrich the raw scraped data with structured features suitable for analysis an
 - Implemented in: `Notebooks/data_science_salary_feature_engineering_Public_data.ipynb`  
 - **Input**: `data/raw_df.csv` (transformed scraped data)  
 - **Output**: `data/df_feature_engineered.csv` (enriched dataset)
--  **Steps**:
-  - Removing jobs posted more than 1 year ago  
-  - Fixing the mixed columns for jobs in which the company description has not the entire information, means ownership, company_size and revenue
-  - Transforming location and headquarter features to extract and preserve only the continent (Canada & US
-  which have the most number of job posts are preserved as the country)
-  - Transforming salary and extract the mean_salary 
+- **Steps**:
+  1. Removing jobs posted more than 1 year ago
+  2. Fixing the mixed columns for jobs missing company information (ownership, company_size, revenue)
+  3. Transforming location and headquarter features to extract continent (Canada & US preserved as countries)
+  4. Transforming salary and extracting the mean_salary
 
 ### ▶️ Usage  
 Open and run the feature engineering notebook:  
