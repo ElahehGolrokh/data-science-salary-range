@@ -54,6 +54,7 @@ Run the crawler directly with:
 
 ```bash
 python crawl.py --pages 5 --url "https://example.com/jobs"
+```
 
 Arguments:
 
