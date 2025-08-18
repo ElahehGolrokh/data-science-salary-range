@@ -24,3 +24,33 @@ preprocessing:
   # Splitter object
   train_size: 0.8
   random_state: 42
+
+training:
+  feature_counts: [5, 10, 15, 20, 30, 40]
+  random_state: 42
+  default_model: RandomForestRegressor
+  cv_splits: 5
+  shuffle: True
+  scoring: neg_mean_squared_error
+  final_models:
+    LinearRegression: {}
+    Lasso:
+      alpha: 0.1
+      random_state: 42
+    Ridge:
+      alpha: 0.1
+      random_state: 42
+    RandomForest:
+      n_estimators: 300
+      random_state: 42
+    GradientBoosting:
+      n_estimators: 300
+      random_state: 42
+    XGB:
+      n_estimators: 300
+      random_state: 42
+  rfe_step: 2
+  model_path: artifacts/final_model.pkl
+  selector_path: artifacts/final_selector.pkl
+  save_flag: True
+  logging_flag: True
