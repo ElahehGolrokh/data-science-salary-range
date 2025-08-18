@@ -92,9 +92,7 @@ class ModelingPipeline:
     --------
     >>> pipe = ModelingPipeline(
     ...     X_train, y_train, X_test, y_test,
-    ...     feature_counts=[10, 20, 30],
-    ...     scoring='r2', logging_flag=True
-    ... )
+    ...     config=config)
     >>> pipe.run_pipeline()
     >>> pipe.best_model_name_
     'RandomForest'
