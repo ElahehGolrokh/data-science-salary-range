@@ -9,6 +9,8 @@ import pandas as pd
 import time
 import requests
 
+from .utils import save_dataframe
+
 
 COLUMNS = ['url', 'job_title', 'seniority_level', 'role', 'status', 'company', 'location', 'post_date', 'headquarter', 'company_description', 'industry', 'exprience', 'ownership', 'company_size', 'revenue', 'job_description', 'salary']
 
@@ -31,7 +33,6 @@ class Crawler:
 
     Private Methods
     --------------
-    _save_data()
     _get_links()
     _extract_all_job_details()
     _extract_job_detail()
@@ -40,10 +41,14 @@ class Crawler:
     _close_popup()
     """
 
-    def __init__(self, pages: int, url: str, file_path: str) -> None:
+    def __init__(self, pages: int,
+                 url: str,
+                 file_path: str,
+                 dir_path: str) -> None:
         self.pages = pages
         self.url = url
         self.file_path = file_path
+        self.dir_path = dir_path
         self.job_links = []
         self.jobs_df = pd.DataFrame(columns=COLUMNS)
 
@@ -57,7 +62,9 @@ class Crawler:
         try:
             self.job_links = self._get_links(driver)
             self._extract_all_job_details(driver)
-            self._save_data()
+            save_dataframe(self.jobs_df,
+                           self.file_path,
+                           self.dir_path)
             print('job_links length, final version = ', len(self.job_links))
         except Exception as e:
             print('Exception:', e)
@@ -65,11 +72,6 @@ class Crawler:
         finally:
             driver.quit()
             print("Selenium browser closed.")
-    
-    def _save_data(self):
-        if not os.path.exists('data'):
-            os.mkdir('data')
-        self.jobs_df.to_csv(self.file_path)
 
     def _get_links(self, driver):
         job_links = set()
