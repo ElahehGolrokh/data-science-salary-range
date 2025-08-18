@@ -99,7 +99,6 @@ class Preprocessor:
                  one_hot_encoder_path: str,
                  mlb_path: str,
                  scaler_path: str,
-                 path_to_save: str,
                  columns_to_drop: list=None,
                  save_objects: bool=True,
                  ):
@@ -107,7 +106,6 @@ class Preprocessor:
         self.one_hot_encoder_path = one_hot_encoder_path
         self.mlb_path = mlb_path
         self.scaler_path = scaler_path
-        self.path_to_save = path_to_save
         self.save_objects = save_objects
 
         # Learned attributes (set after pipeline run)
@@ -117,14 +115,16 @@ class Preprocessor:
 
     def run(self,
             input_df: pd.DataFrame,
-            src_df: pd.DataFrame) -> pd.DataFrame:
+            src_df: pd.DataFrame=None,
+            preprocessed_path: str=None) -> pd.DataFrame:
         input_df = self._drop_useless_features(input_df)
         input_df = self._impute_missing_values(input_df, src_df)
         input_df = self._remove_outliers(input_df, q=.99)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
-        save_dataframe(input_df, self.path_to_save)
+        if preprocessed_path:
+            save_dataframe(input_df, preprocessed_path)
         return input_df
 
     def _drop_useless_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
