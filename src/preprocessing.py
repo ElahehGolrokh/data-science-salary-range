@@ -1,8 +1,10 @@
+import ast
 import joblib
 import logging
 import os
 import pandas as pd
 
+from collections import Counter
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from .utils import load_dataframe, save_dataframe
@@ -187,3 +189,56 @@ class Preprocessor:
         # Concatenate the encoded DataFrames with the remaining columns
         self.input_df = pd.concat([self.input_df, df_encoded], axis=1)
         print(f'input_df shape after one-hot encoding: {self.input_df.shape}')
+    
+    def _process_skills(self):
+        """Processes skills"""
+        self.input_df['skills'] = self.input_df['skills'].apply(self._parse_skills)
+        self.input_df['skills'] = self.input_df['skills'].apply(self._normalize_skills)
+        self._handle_high_cardinality()
+        self._fit_multilabel_binarizer()
+
+    @staticmethod
+    def _parse_skills(x):
+        """Ensures skills are lists"""
+        if isinstance(x, str):
+            try:
+                return ast.literal_eval(x)
+            except (ValueError, SyntaxError):
+                return []
+        elif isinstance(x, list):
+            return x
+        return []
+
+    @staticmethod
+    def _normalize_skills(skills):
+        """Normalizes skill names"""
+        return [s.strip().lower() for s in skills if isinstance(s, str)]
+
+    def _handle_high_cardinality(self):
+        """Handles high cardinality: keep only top N skills"""
+        N_TOP_SKILLS = 50
+        if not self.src_df:
+            all_skills = [skill for sublist in self.input_df['skills'] for skill in sublist]
+        else:
+            all_skills = [skill for sublist in self.src_df['skills'] for skill in sublist]
+
+        top_skills = {s for s, _ in Counter(all_skills).most_common(N_TOP_SKILLS)}
+        self.input_df['skills'] = self.input_df['skills'].apply(lambda skills: [s if s in top_skills else 'other' for s in skills])
+
+    def _fit_multilabel_binarizer(self):
+        """Fits MultiLabelBinarizer on train, transform both"""
+        if not self.src_df:
+            mlb = MultiLabelBinarizer()
+            skills_encoded = mlb.fit_transform(self.input_df['skills'])
+            if self.save_objects:
+                self._save_object_to_file(mlb, self.mlb_path)
+        else:
+            mlb = joblib.load(self.mlb_path)
+            skills_encoded = mlb.transform(self.input_df['skills'])
+
+        # Convert to DataFrames & merge
+        skills_df = pd.DataFrame(skills_encoded,
+                                 columns=[f"skill_{s}" for s in mlb.classes_],
+                                 index=self.input_df.index)
+        self.input_df = pd.concat([self.input_df.drop(columns=['skills']), skills_df], axis=1)
+        print(f'input_df shape after processing skills: {self.input_df.shape}')
