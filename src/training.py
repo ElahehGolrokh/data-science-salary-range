@@ -1,4 +1,3 @@
-import joblib
 import logging
 import numpy as np
 import pandas as pd
@@ -108,7 +107,8 @@ class ModelingPipeline:
                  X_test: pd.DataFrame,
                  y_test: pd.Series,
                  selected_features_: list[str] = None,
-                 feature_selection_flag: bool = True,):
+                 feature_selection_flag: bool = True,
+                 compare_models_flag: bool = True):
 
         # Store init params
         self.config = config
@@ -117,6 +117,9 @@ class ModelingPipeline:
         self.X_test = X_test
         self.y_test = y_test
         self.feature_selection_flag = feature_selection_flag
+        self.compare_models_flag = compare_models_flag
+
+        # Parameters from config
         self.feature_counts = self.config.training.feature_counts
         self.random_state = self.config.training.random_state
         self.model = get_default_model(self.config, MODEL_MAP)
@@ -185,10 +188,24 @@ class ModelingPipeline:
                     raise ValueError("selected_features_ is None. You can either " +
                                      "set feature_selection_flag=True to perform feature " +
                                      "selection or give selected_features_ a default list.")
-        self._get_best_model()
+        if self.compare_models_flag:
+            self._get_best_model()
+            if self.save_flag:
+                save_object_to_file(self.best_model_,
+                                    self.model_path,
+                                    self.config.paths.artifacts_dir)
+                self.logger.info("Saved best model to %s", self.model_path)
+        else:
+            self.best_model_name_ = self.config.training.default_model.name
+            self.best_model_ = self.final_models_[self.best_model_name_]
+            self.logger.warning("Using default model: %s as the best model for training",
+                                self.best_model_name_)
         self._final_fit()
         if self.save_flag:
-            self._save_artifacts()
+            save_object_to_file(self.best_model_,
+                                self.model_path,
+                                self.config.paths.artifacts_dir)
+            self.logger.info("Saved best model to %s", self.model_path)
         self.logger.info('Pipeline execution completed successfully.')
 
     # feature selection
@@ -271,15 +288,6 @@ class ModelingPipeline:
         if self.logging_flag:
             self.logger.info('Fitting the best model on the full training set...')
         self.best_model_.fit(self.X_train[self.selected_features_], self.y_train)
-
-    # saving
-    def _save_artifacts(self,) -> None:
-        """
-        Saves the best model and selected features to files.
-        """
-        joblib.dump(self.best_model_, self.model_path)
-        joblib.dump(self.selected_features_, self.selector_path)
-        self.logger.info("Saved model to %s and selector to %s", self.model_path, self.selector_path)
 
     @staticmethod
     def choose_features_from_elbow(mean_scores: list[float], feature_counts: list[int],

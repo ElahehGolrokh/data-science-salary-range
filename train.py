@@ -15,12 +15,16 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-fs', '--feature_selection',
                     action='store_true',
                     help='Enable feature selection in the pipeline')
+parser.add_argument('-cm', '--compare_models',
+                    action='store_true',
+                    help='Enable model comparison in the pipeline')
 args = parser.parse_args()
 
 config = OmegaConf.load('config.yaml')
 
 
-def main(feature_selection: bool):
+def main(feature_selection: bool,
+         compare_models: bool):
     train_scaled = pd.read_csv('data/preprocessed_train_df.csv')
     X_train = train_scaled.drop('mean_salary', axis=1)
     y_train = train_scaled['mean_salary']
@@ -37,9 +41,11 @@ def main(feature_selection: bool):
                                 y_train,
                                 X_test,
                                 y_test,
-                                feature_selection_flag=feature_selection)
+                                feature_selection_flag=feature_selection,
+                                compare_models_flag=compare_models)
     pipeline.run_pipeline()
     print(f'pipeline.best_feature_counts_ : {pipeline.best_feature_counts_}')
 
 if __name__ == "__main__":
-    main(args.feature_selection)
+    main(args.feature_selection,
+         args.compare_models)
