@@ -55,6 +55,6 @@ training:
       random_state: 42
   rfe_step: 2
   model_path: artifacts/final_model.pkl
-  selector_path: artifacts/final_selector.pkl
+  selector_path: artifacts/final_selectoed_features.pkl
   save_flag: True
   logging_flag: True
