@@ -142,3 +142,14 @@ class Preprocessor:
         else:
             self.input_df['company_size'].fillna(self.src_df['company_size'].median(),
                                                  inplace=True)
+    
+    def _remove_outliers(self, q: float=.99, right_skewed: bool=True) -> None:
+        """Removes outliers based on the passed quantile"""
+        cols = ['company_size', 'mean_salary']
+        for col in cols:
+            if right_skewed:
+                self.input_df = self.input_df[self.input_df[col] <= self.input_df[col].quantile(q)]
+            else:
+                self.input_df = self.input_df[self.input_df[col] >= self.input_df[col].quantile(q)]
+
+        print(f'train_df shape after removing outliers: {self.input_df.shape}')
