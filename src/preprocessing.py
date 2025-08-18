@@ -95,18 +95,15 @@ class Splitter:
 
 
 class Preprocessor:
-    def __init__(self, input_df: pd.DataFrame,
+    def __init__(self,
                  one_hot_encoder_path: str,
                  mlb_path: str,
                  scaler_path: str,
                  path_to_save: str,
                  columns_to_drop: list=None,
-                 src_df: pd.DataFrame=None,
                  save_objects: bool=True,
                  ):
-        self.input_df = input_df
         self.columns_to_drop = columns_to_drop
-        self.src_df = src_df
         self.one_hot_encoder_path = one_hot_encoder_path
         self.mlb_path = mlb_path
         self.scaler_path = scaler_path
@@ -117,18 +114,20 @@ class Preprocessor:
         self.one_hot_encoder_ = None
         self.mlb_ = None
         self.scaler_ = None
-    
-    def run(self):
-        self._drop_useless_features()
-        self._impute_missing_values()
-        self._remove_outliers(q=.99)
-        self._one_hot_encode_categorical()
-        self._process_skills()
-        self._standardize()
-        save_dataframe(self.input_df, self.path_to_save)
-        return self.input_df
-    
-    def _drop_useless_features(self):
+
+    def run(self,
+            input_df: pd.DataFrame,
+            src_df: pd.DataFrame) -> pd.DataFrame:
+        input_df = self._drop_useless_features(input_df)
+        input_df = self._impute_missing_values(input_df, src_df)
+        input_df = self._remove_outliers(input_df, q=.99)
+        input_df = self._one_hot_encode_categorical(input_df, src_df)
+        input_df = self._process_skills(input_df, src_df)
+        input_df = self._standardize(input_df, src_df)
+        save_dataframe(input_df, self.path_to_save)
+        return input_df
+
+    def _drop_useless_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
         """Drops useless features"""
         if not self.columns_to_drop:
             self.columns_to_drop = ['min_salary',  # Not informative
@@ -137,77 +136,91 @@ class Preprocessor:
                                     'company',  # Not informative
                                     'job_title',  # High frequency of dominant category
                                     ]
-        self.input_df.drop(columns=self.columns_to_drop, inplace=True)
-    
-    def _impute_missing_values(self):
+        input_df = input_df.drop(columns=self.columns_to_drop)
+        return input_df
+
+    def _impute_missing_values(self,
+                               input_df: pd.DataFrame,
+                               src_df: pd.DataFrame) -> pd.DataFrame:
         """
         Imputes missing values with the mode for categorical columns
         of the train data
         """
         for col in ['seniority_level', 'status', 'ownership']:
-            if not self.src_df:
-                self.input_df[col].fillna(self.input_df[col].mode()[0], inplace=True)
+            if not src_df:
+                input_df[col].fillna(input_df[col].mode()[0], inplace=True)
             else:
-                self.input_df[col].fillna(self.src_df[col].mode()[0], inplace=True)
+                input_df[col].fillna(src_df[col].mode()[0], inplace=True)
 
         # Impute missing values with the median for company_size because based
         # on describe stats, this column is skewed & so median is a better choice
         # for imputation than the mean
-        if not self.src_df:
-            self.input_df['company_size'].fillna(self.input_df['company_size'].median(),
+        if not src_df:
+            input_df['company_size'].fillna(input_df['company_size'].median(),
                                                  inplace=True)
         else:
-            self.input_df['company_size'].fillna(self.src_df['company_size'].median(),
+            input_df['company_size'].fillna(src_df['company_size'].median(),
                                                  inplace=True)
-    
-    def _remove_outliers(self, q: float=.99, right_skewed: bool=True) -> None:
+        return input_df
+
+    def _remove_outliers(self,
+                         input_df: pd.DataFrame,
+                         q: float=.99,
+                         right_skewed: bool=True) -> pd.DataFrame:
         """Removes outliers based on the passed quantile"""
         cols = ['company_size', 'mean_salary']
         for col in cols:
             if right_skewed:
-                self.input_df = self.input_df[self.input_df[col] <= self.input_df[col].quantile(q)]
+                input_df = input_df[input_df[col] <= input_df[col].quantile(q)]
             else:
-                self.input_df = self.input_df[self.input_df[col] >= self.input_df[col].quantile(q)]
+                input_df = input_df[input_df[col] >= input_df[col].quantile(q)]
 
-        print(f'train_df shape after removing outliers: {self.input_df.shape}')
+        print(f'train_df shape after removing outliers: {input_df.shape}')
+        return input_df
     
-    def _one_hot_encode_categorical(self) -> None:
+    def _one_hot_encode_categorical(self,
+                                    input_df: pd.DataFrame,
+                                    src_df: pd.DataFrame) -> pd.DataFrame:
         """
         One-hot encodes categorical columns
         """
         categorical_columns = ['seniority_level', 'status', 'location',
                                'headquarter', 'industry', 'ownership']
 
-        if not self.src_df:
+        if not src_df:
             # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
             # and handle_unknown='ignore' to handle potential unseen categories in the test set
             self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
             # Fit and transform on the training data
-            df_encoded = self.one_hot_encoder_.fit_transform(self.input_df[categorical_columns])
+            df_encoded = self.one_hot_encoder_.fit_transform(input_df[categorical_columns])
             if self.save_objects:
                 save_object_to_file(self.one_hot_encoder_, self.one_hot_encoder_path)
         else:
             # Load the encoder from the file
             self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
             # Transform the test data
-            df_encoded = self.one_hot_encoder_.transform(self.input_df[categorical_columns])
+            df_encoded = self.one_hot_encoder_.transform(input_df[categorical_columns])
 
         # Convert the encoded arrays back to DataFrames
         df_encoded = pd.DataFrame(df_encoded,
                                   columns=self.one_hot_encoder_.get_feature_names_out(categorical_columns),
-                                  index=self.input_df.index)
-        # Drop the original categorical columns from self.input_df
-        self.input_df = self.input_df.drop(columns=categorical_columns)
+                                  index=input_df.index)
+        # Drop the original categorical columns from input_df
+        input_df = input_df.drop(columns=categorical_columns)
         # Concatenate the encoded DataFrames with the remaining columns
-        self.input_df = pd.concat([self.input_df, df_encoded], axis=1)
-        print(f'input_df shape after one-hot encoding: {self.input_df.shape}')
-    
-    def _process_skills(self):
+        input_df = pd.concat([input_df, df_encoded], axis=1)
+        print(f'input_df shape after one-hot encoding: {input_df.shape}')
+        return input_df
+
+    def _process_skills(self,
+                        input_df: pd.DataFrame,
+                        src_df: pd.DataFrame) -> pd.DataFrame:
         """Processes skills"""
-        self.input_df['skills'] = self.input_df['skills'].apply(self._parse_skills)
-        self.input_df['skills'] = self.input_df['skills'].apply(self._normalize_skills)
-        self._handle_high_cardinality()
-        self._fit_multilabel_binarizer()
+        input_df['skills'] = input_df['skills'].apply(self._parse_skills)
+        input_df['skills'] = input_df['skills'].apply(self._normalize_skills)
+        self._handle_high_cardinality(input_df, src_df)
+        self._fit_multilabel_binarizer(input_df, src_df)
+        return input_df
 
     @staticmethod
     def _parse_skills(x):
@@ -226,45 +239,54 @@ class Preprocessor:
         """Normalizes skill names"""
         return [s.strip().lower() for s in skills if isinstance(s, str)]
 
-    def _handle_high_cardinality(self):
+    @staticmethod
+    def _handle_high_cardinality(input_df: pd.DataFrame,
+                                 src_df: pd.DataFrame) -> pd.DataFrame:
         """Handles high cardinality: keep only top N skills"""
         N_TOP_SKILLS = 50
-        if not self.src_df:
-            all_skills = [skill for sublist in self.input_df['skills'] for skill in sublist]
+        if not src_df:
+            all_skills = [skill for sublist in input_df['skills'] for skill in sublist]
         else:
-            all_skills = [skill for sublist in self.src_df['skills'] for skill in sublist]
+            all_skills = [skill for sublist in src_df['skills'] for skill in sublist]
 
         top_skills = {s for s, _ in Counter(all_skills).most_common(N_TOP_SKILLS)}
-        self.input_df['skills'] = self.input_df['skills'].apply(lambda skills: [s if s in top_skills else 'other' for s in skills])
+        input_df['skills'] = input_df['skills'].apply(lambda skills: [s if s in top_skills else 'other' for s in skills])
+        return input_df
 
-    def _fit_multilabel_binarizer(self):
+    def _fit_multilabel_binarizer(self,
+                                  input_df: pd.DataFrame,
+                                  src_df: pd.DataFrame) -> pd.DataFrame:
         """Fits MultiLabelBinarizer on train, transform both"""
-        if not self.src_df:
+        if not src_df:
             mlb = MultiLabelBinarizer()
-            skills_encoded = mlb.fit_transform(self.input_df['skills'])
+            skills_encoded = mlb.fit_transform(input_df['skills'])
             if self.save_objects:
                 save_object_to_file(mlb, self.mlb_path)
         else:
             mlb = joblib.load(self.mlb_path)
-            skills_encoded = mlb.transform(self.input_df['skills'])
+            skills_encoded = mlb.transform(input_df['skills'])
 
         # Convert to DataFrames & merge
         skills_df = pd.DataFrame(skills_encoded,
                                  columns=[f"skill_{s}" for s in mlb.classes_],
-                                 index=self.input_df.index)
-        self.input_df = pd.concat([self.input_df.drop(columns=['skills']), skills_df], axis=1)
-        print(f'input_df shape after processing skills: {self.input_df.shape}')
-    
-    def _standardize(self):
+                                 index=input_df.index)
+        input_df = pd.concat([input_df.drop(columns=['skills']), skills_df], axis=1)
+        print(f'input_df shape after processing skills: {input_df.shape}')
+        return input_df
+
+    def _standardize(self,
+                     input_df: pd.DataFrame,
+                     src_df: pd.DataFrame) -> pd.DataFrame:
         """Standardizes numerical features"""
-        if not self.src_df:
+        if not src_df:
             scaler = StandardScaler()
-            scaled = scaler.fit_transform(self.input_df[['mean_salary', 'company_size']])
+            scaled = scaler.fit_transform(input_df[['mean_salary', 'company_size']])
             if self.save_objects:
                 save_object_to_file(scaler, self.scaler_path)
         else:
             scaler = joblib.load(self.scaler_path)
-            scaled = scaler.transform(self.input_df[['mean_salary', 'company_size']])
-        scaled = pd.DataFrame(scaled, columns=['mean_salary', 'company_size'], index=self.input_df.index)
-        self.input_df = pd.concat([scaled, self.input_df.drop(columns=['mean_salary', 'company_size'])], axis=1)
-        print(f'input_df shape after standardizing: {self.input_df.shape}')
+            scaled = scaler.transform(input_df[['mean_salary', 'company_size']])
+        scaled = pd.DataFrame(scaled, columns=['mean_salary', 'company_size'], index=input_df.index)
+        input_df = pd.concat([scaled, input_df.drop(columns=['mean_salary', 'company_size'])], axis=1)
+        print(f'input_df shape after standardizing: {input_df.shape}')
+        return input_df
