@@ -115,9 +115,30 @@ class Preprocessor:
         """Drops useless features"""
         if not self.columns_to_drop:
             self.columns_to_drop = ['min_salary',  # Not informative
-                    'max_salary',  # Not informative
-                    'revenue',  # Large number of missing values
-                    'company',  # Not informative
-                    'job_title',  # High frequency of dominant category
-                    ]
+                                    'max_salary',  # Not informative
+                                    'revenue',  # Large number of missing values
+                                    'company',  # Not informative
+                                    'job_title',  # High frequency of dominant category
+                                    ]
         self.input_df.drop(columns=self.columns_to_drop, inplace=True)
+    
+    def _impute_missing_values(self):
+        """
+        Imputes missing values with the mode for categorical columns
+        of the train data
+        """
+        for col in ['seniority_level', 'status', 'ownership']:
+            if not self.src_df:
+                self.input_df[col].fillna(self.input_df[col].mode()[0], inplace=True)
+            else:
+                self.input_df[col].fillna(self.src_df[col].mode()[0], inplace=True)
+
+        # Impute missing values with the median for company_size because based
+        # on describe stats, this column is skewed & so median is a better choice
+        # for imputation than the mean
+        if not self.src_df:
+            self.input_df['company_size'].fillna(self.input_df['company_size'].median(),
+                                                 inplace=True)
+        else:
+            self.input_df['company_size'].fillna(self.src_df['company_size'].median(),
+                                                 inplace=True)
