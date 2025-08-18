@@ -1,6 +1,5 @@
 import argparse
 import pandas as pd
-import yaml
 
 from omegaconf import OmegaConf
 
@@ -35,9 +34,7 @@ def main():
                                 X_train,
                                 y_train,
                                 X_test,
-                                y_test,
-                                default_model=None,
-                                )
+                                y_test,)
     pipeline.run_pipeline()
     print(f'pipeline.best_feature_counts_ : {pipeline.best_feature_counts_}')
 
