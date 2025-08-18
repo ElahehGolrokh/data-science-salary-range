@@ -17,11 +17,15 @@ def save_dataframe(df: pd.DataFrame,
     df.to_csv(file_path, index=False)
 
 
-def save_object_to_file(input_object, file_path) -> None:
+def save_object_to_file(input_object,
+                        file_path: str,
+                        dir_path: str) -> None:
     """Saves the preprocessing and modeling objects to a pickle file."""
     if input_object is None:
         raise ValueError("The object has not been fitted yet. \
                          Run for training data first")
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
     joblib.dump(input_object, file_path)
     print(f"Object saved to {file_path}")
 

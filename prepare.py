@@ -9,6 +9,10 @@ parser = argparse.ArgumentParser(
     epilog=f'Thanks for using.'
 )
 
+# data directory path
+parser.add_argument('--data_dir_path', help='set the directory path for saving data')
+parser.add_argument('--artifacts_dir_path', help='set the directory path for saving artifacts')
+
 # Splitter object's parameters
 parser.add_argument('--train_path', help='set the training data file path')
 parser.add_argument('--test_path', help='set the testing data file path')
@@ -27,6 +31,10 @@ args = parser.parse_args()
 
 config = OmegaConf.load('config.yaml')
 
+# directory paths
+DATA_DIR_PATH = args.data_dir_path if args.data_dir_path else config.paths.data_dir
+ARTIFACTS_DIR_PATH = args.artifacts_dir_path if args.artifacts_dir_path else config.paths.artifacts_dir
+
 # splitter object's parameters
 FILE_PATH = args.file_path if args.file_path else config.paths.feature_engineered
 TRAIN_SIZE = args.train_size if args.train_size else config.preprocessing.train_size
@@ -42,7 +50,9 @@ PREPROCESSED_TRAIN_PATH = args.preprocessed_train_path if args.preprocessed_trai
 PREPROCESSED_TEST_PATH = args.preprocessed_test_path if args.preprocessed_test_path else config.paths.preprocessed_test
 
 
-def main(file_path: str,
+def main(data_dir_path: str,
+         artifacts_dir_path: str,
+         file_path: str,
          train_path: str,
          test_path: str,
          train_size: float,
@@ -53,14 +63,17 @@ def main(file_path: str,
          preprocessed_train_path: str,
          preprocessed_test_path: str
          ):
-    train_df_, test_df_ = Splitter(file_path,
+    train_df_, test_df_ = Splitter(data_dir_path,
+                                   file_path,
                                    train_path,
                                    test_path,
                                    train_size,
                                    random_state).split()
     print(train_df_.shape, test_df_.shape)
 
-    preprocessor = Preprocessor(one_hot_encoder_path=one_hot_encoder_path,
+    preprocessor = Preprocessor(data_dir_path=data_dir_path,
+                                artifacts_dir_path=artifacts_dir_path,
+                                one_hot_encoder_path=one_hot_encoder_path,
                                 mlb_path=mlb_path,
                                 scaler_path=scaler_path)
 
@@ -71,7 +84,10 @@ def main(file_path: str,
                      preprocessed_path=preprocessed_test_path)
 
 if __name__ == '__main__':
-    main(file_path=FILE_PATH,
+    main(
+         data_dir_path=DATA_DIR_PATH,
+         artifacts_dir_path=ARTIFACTS_DIR_PATH,
+         file_path=FILE_PATH,
          train_path=TRAIN_PATH,
          test_path=TEST_PATH,
          train_size=TRAIN_SIZE,
