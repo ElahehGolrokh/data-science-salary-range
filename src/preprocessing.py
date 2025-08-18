@@ -227,8 +227,8 @@ class Preprocessor:
         """Processes skills"""
         input_df['skills'] = input_df['skills'].apply(self._parse_skills)
         input_df['skills'] = input_df['skills'].apply(self._normalize_skills)
-        self._handle_high_cardinality(input_df, src_df)
-        self._fit_multilabel_binarizer(input_df, src_df)
+        input_df = self._handle_high_cardinality(input_df, src_df)
+        input_df = self._fit_multilabel_binarizer(input_df, src_df)
         return input_df
 
     @staticmethod
@@ -282,7 +282,6 @@ class Preprocessor:
                                  columns=[f"skill_{s}" for s in mlb.classes_],
                                  index=input_df.index)
         input_df = pd.concat([input_df.drop(columns=['skills']), skills_df], axis=1)
-        print(f'input_df shape after processing skills: {input_df.shape}')
         return input_df
 
     def _standardize(self,
