@@ -1,0 +1,26 @@
+version: '1.0.0'
+
+seed: 42
+
+url: 'https://www.example.com/jobs'
+pages: 500
+
+paths:
+  data_dir: 'data'
+  raw_data: 'data/raw_df.csv'
+  feature_engineered: 'data/df_feature_engineered.csv'
+  # training & testing data after split
+  train_data: 'data/train_df.csv'
+  test_data: 'data/test_df.csv'
+  # preprocessing objects & files
+  artifacts_dir: 'artifacts'
+  one_hot_encoder: 'artifacts/one_hot_encoder.pkl'
+  mlb: 'artifacts/mlb.pkl'
+  scaler: 'artifacts/scaler.pkl'
+  preprocessed_train: 'data/preprocessed_train_df.csv'
+  preprocessed_test: 'data/preprocessed_test_df.csv'
+
+preprocessing:
+  # Splitter object
+  train_size: 0.8
+  random_state: 42
