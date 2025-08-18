@@ -32,6 +32,13 @@ def save_object_to_file(input_object,
     print(f"Object saved to {file_path}")
 
 
+def load_object_from_file(file_path: str) -> None:
+    """Loads a pickled object from a file."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"No file found at {file_path}")
+    return joblib.load(file_path)
+
+
 def build_models_from_config(config_dict: dict,
                              model_map: dict) -> dict:
     """Build regression models from a configuration dictionary."""

@@ -12,7 +12,9 @@ from sklearn.model_selection import cross_val_score, KFold
 from sklearn.feature_selection import RFE
 from xgboost import XGBRegressor
 
-from .utils import build_models_from_config, get_default_model
+from .utils import build_models_from_config, \
+    get_default_model, save_object_to_file, \
+    load_object_from_file
 
 MODEL_MAP = {
     "LinearRegression": LinearRegression,
@@ -104,7 +106,9 @@ class ModelingPipeline:
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
                  X_test: pd.DataFrame,
-                 y_test: pd.Series,):
+                 y_test: pd.Series,
+                 selected_features_: list[str] = None,
+                 feature_selection_flag: bool = True,):
 
         # Store init params
         self.config = config
@@ -112,6 +116,7 @@ class ModelingPipeline:
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
+        self.feature_selection_flag = feature_selection_flag
         self.feature_counts = self.config.training.feature_counts
         self.random_state = self.config.training.random_state
         self.model = get_default_model(self.config, MODEL_MAP)
@@ -126,7 +131,7 @@ class ModelingPipeline:
 
         # Learned attributes (set after pipeline run)
         self.final_models_: dict[str, RegressorMixin] = None
-        self.selected_features_: list[str] | None = None
+        self.selected_features_ = selected_features_
         self.best_feature_counts_: int | None = None
         self.best_model_: RegressorMixin | None = None
         self.best_model_name_: str | None = None
@@ -164,8 +169,22 @@ class ModelingPipeline:
         Runs the entire pipeline.
         """
         self._initial_settings()
-        self._find_best_feature_counts()
-        self._refit_rfe()
+        if self.feature_selection_flag:
+            self._find_best_feature_counts()
+            self._refit_rfe()
+            if self.save_flag:
+                save_object_to_file(self.selected_features_,
+                                    self.selector_path,
+                                    self.config.paths.artifacts_dir)
+        else:
+            if self.selected_features_ is None:
+                try:
+                    self.selected_features_ = load_object_from_file(self.selector_path)
+                    self.logger.info("Loaded selected features: %s", self.selected_features_)
+                except Exception as e:
+                    raise ValueError("selected_features_ is None. You can either " +
+                                     "set feature_selection_flag=True to perform feature " +
+                                     "selection or give selected_features_ a default list.")
         self._get_best_model()
         self._final_fit()
         if self.save_flag:
