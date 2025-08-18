@@ -242,3 +242,17 @@ class Preprocessor:
                                  index=self.input_df.index)
         self.input_df = pd.concat([self.input_df.drop(columns=['skills']), skills_df], axis=1)
         print(f'input_df shape after processing skills: {self.input_df.shape}')
+    
+    def _standardize(self):
+        """Standardizes numerical features"""
+        if not self.src_df:
+            scaler = StandardScaler()
+            scaled = scaler.fit_transform(self.input_df[['mean_salary', 'company_size']])
+            if self.save_objects:
+                self._save_object_to_file(scaler, self.scaler_path)
+        else:
+            scaler = joblib.load(self.scaler_path)
+            scaled = scaler.transform(self.input_df[['mean_salary', 'company_size']])
+        scaled = pd.DataFrame(scaled, columns=['mean_salary', 'company_size'], index=self.input_df.index)
+        self.input_df = pd.concat([scaled, self.input_df.drop(columns=['mean_salary', 'company_size'])], axis=1)
+        print(f'input_df shape after standardizing: {self.input_df.shape}')
