@@ -1,6 +1,7 @@
 private_files/
 venv/
 src/__pycache__
+artifacts/
 data/test_df.csv
 data/train_df.csv
 data/preprocessed_train_df.csv

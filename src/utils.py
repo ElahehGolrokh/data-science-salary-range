@@ -29,3 +29,11 @@ def save_object_to_file(input_object,
     joblib.dump(input_object, file_path)
     print(f"Object saved to {file_path}")
 
+
+def build_models_from_config(config_dict: dict,
+                             model_map: dict) -> dict:
+    """Build regression models from a configuration dictionary."""
+    models = {}
+    for name, params in config_dict.items():
+        models[name] = model_map[name](**params)
+    return models

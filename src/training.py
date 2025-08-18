@@ -8,16 +8,26 @@ from sklearn.base import RegressorMixin
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.feature_selection import RFE
 from xgboost import XGBRegressor
+
+from .utils import build_models_from_config
+
+MODEL_MAP = {
+    "LinearRegression": LinearRegression,
+    "Lasso": Lasso,
+    "Ridge": Ridge,
+    "RandomForest": RandomForestRegressor,
+    "GradientBoosting": GradientBoostingRegressor,
+    "XGB": XGBRegressor,
+}
 
 
 class ModelingPipeline:
     """
     End-to-end regression pipeline with RFE-based feature selection,
-    model comparison, final training, optional evaluation, and artifact saving.
+    model comparison, final training, and artifact saving.
 
     Workflow
     --------
@@ -25,7 +35,6 @@ class ModelingPipeline:
     2) Refit RFE on the full training data with the chosen feature count.
     3) Compare candidate models via cross-validation on selected features.
     4) Fit the best model on the full training data.
-    5) Optionally evaluate on the held-out test set.
     6) Optionally persist artifacts (model + selected features).
 
     Parameters
@@ -58,8 +67,6 @@ class ModelingPipeline:
         Path to save the fitted model.
     selector_path : str, default="final_selector.pkl"
         Path to save the selected feature names.
-    evaluation_flag : bool, default=True
-        Whether to evaluate on the test set.
     save_flag : bool, default=True
         Whether to save the artifacts.
     logging_flag : bool, default=True
@@ -95,44 +102,33 @@ class ModelingPipeline:
     ['skill_python', 'yoe', 'level_L5', 'location_US_CA', 'industry_SWE']
     """
     def __init__(self,
-             X_train: pd.DataFrame,
-             y_train: pd.Series,
-             X_test: pd.DataFrame,
-             y_test: pd.Series,
-             feature_counts: list[int] = None,
-             random_state: int = 42,
-             default_model: RegressorMixin = None,
-             cv_splits: int = 5,
-             shuffle: bool = True,
-             scoring: str = 'neg_mean_squared_error',
-             final_models_: dict[str, RegressorMixin] = None,
-             rfe_step: int = 2,
-             model_path: str = 'final_model.pkl',
-             selector_path: str = 'final_selector.pkl',
-             evaluation_flag: bool = True,
-             save_flag: bool = True,
-             logging_flag: bool = True):
+                 config: dict,
+                 X_train: pd.DataFrame,
+                 y_train: pd.Series,
+                 X_test: pd.DataFrame,
+                 y_test: pd.Series,
+                 default_model: RegressorMixin,):
 
         # Store init params
+        self.config = config
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
-        self.feature_counts = feature_counts
-        self.random_state = random_state
+        self.feature_counts = self.config.training.feature_counts
+        self.random_state = self.config.training.random_state
         self.model = default_model
-        self.cv_splits = cv_splits
-        self.shuffle = shuffle
-        self.scoring = scoring
-        self.final_models_ = final_models_
-        self.rfe_step = rfe_step
-        self.model_path = model_path
-        self.selector_path = selector_path
-        self.evaluation_flag = evaluation_flag
-        self.save_flag = save_flag
-        self.logging_flag = logging_flag
+        self.cv_splits = self.config.training.cv_splits
+        self.shuffle = self.config.training.shuffle
+        self.scoring = self.config.training.scoring
+        self.rfe_step = self.config.training.rfe_step
+        self.model_path = self.config.training.model_path
+        self.selector_path = self.config.training.selector_path
+        self.save_flag = self.config.training.save_flag
+        self.logging_flag = self.config.training.logging_flag
 
         # Learned attributes (set after pipeline run)
+        self.final_models_: dict[str, RegressorMixin] = None
         self.selected_features_: list[str] | None = None
         self.best_feature_counts_: int | None = None
         self.best_model_: RegressorMixin | None = None
@@ -163,29 +159,18 @@ class ModelingPipeline:
                                 format='%(asctime)s - %(levelname)s - %(message)s')
             self.logger = logging.getLogger(__name__)
             self.logger.info("Logging configured.")
-        if not self.final_models_:
-            self.final_models_ = {'LinearRegression': LinearRegression(),
-                                'Lasso': Lasso(alpha=0.1, random_state=self.random_state),
-                                'Ridge': Ridge(alpha=0.1, random_state=self.random_state),
-                                'RandomForest': RandomForestRegressor(n_estimators=300, random_state=self.random_state),
-                                'GradientBoosting': GradientBoostingRegressor(n_estimators=300, random_state=self.random_state),
-                                'XGB': XGBRegressor(n_estimators=300, random_state=self.random_state)
-                                }
+        self.final_models_ = build_models_from_config(self.config.training.final_models,
+                                                      MODEL_MAP)
 
     def run_pipeline(self) -> None:
         """
         Runs the entire pipeline.
         """
         self._initial_settings()
-        print('Finding best feature counts...')
         self._find_best_feature_counts()
-        print('RFE...')
         self._refit_rfe()
         self._get_best_model()
-        print('Finalizing model...')
         self._final_fit()
-        if self.evaluation_flag:
-            self._evaluate()
         if self.save_flag:
             self._save_artifacts()
         self.logger.info('Pipeline execution completed successfully.')
@@ -197,9 +182,7 @@ class ModelingPipeline:
         """
         if self.logging_flag:
             self.logger.info('Finding the optimum number of features...')
-        if not self.feature_counts:
-            self.feature_counts = [5, 10, 15, 20, 30, 40]
-        if not self.model:
+        if self.model is None:
             self.model = RandomForestRegressor()
         mean_scores = []
         for n_features in self.feature_counts:
@@ -273,16 +256,7 @@ class ModelingPipeline:
             self.logger.info('Fitting the best model on the full training set...')
         self.best_model_.fit(self.X_train[self.selected_features_], self.y_train)
 
-    # evaluation/saving
-    def _evaluate(self) -> None:
-        """
-        Evaluates the best model on the test set.
-        """
-        y_pred = self.best_model_.predict(self.X_test[self.selected_features_])
-        mse = mean_squared_error(self.y_test, y_pred)
-        self.logger.info("Best model Mean Squared Error on test set: %.4f", mse)
-
-
+    # saving
     def _save_artifacts(self,) -> None:
         """
         Saves the best model and selected features to files.
