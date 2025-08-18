@@ -1,11 +1,11 @@
 import argparse
 
 from omegaconf import OmegaConf
-from data_collecting import Crawler
+from src.data_collecting import Crawler
 
 
 parser = argparse.ArgumentParser(
-    prog='main.py',
+    prog='crawl.py',
     description='Scrape data science job postings',
     epilog=f'Thanks for using.'
 )
