@@ -1,7 +1,10 @@
+import joblib
 import logging
 import os
 import pandas as pd
 
+from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from .utils import load_dataframe, save_dataframe
 
 
@@ -153,3 +156,34 @@ class Preprocessor:
                 self.input_df = self.input_df[self.input_df[col] >= self.input_df[col].quantile(q)]
 
         print(f'train_df shape after removing outliers: {self.input_df.shape}')
+    
+    def _one_hot_encode_categorical(self) -> None:
+        """
+        One-hot encodes categorical columns
+        """
+        categorical_columns = ['seniority_level', 'status', 'location',
+                               'headquarter', 'industry', 'ownership']
+
+        if not self.src_df:
+            # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
+            # and handle_unknown='ignore' to handle potential unseen categories in the test set
+            self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
+            # Fit and transform on the training data
+            df_encoded = self.one_hot_encoder_.fit_transform(self.input_df[categorical_columns])
+            if self.save_objects:
+                self._save_object_to_file(self.one_hot_encoder_, self.one_hot_encoder_path)
+        else:
+            # Load the encoder from the file
+            self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
+            # Transform the test data
+            df_encoded = self.one_hot_encoder_.transform(self.input_df[categorical_columns])
+
+        # Convert the encoded arrays back to DataFrames
+        df_encoded = pd.DataFrame(df_encoded,
+                                  columns=self.one_hot_encoder_.get_feature_names_out(categorical_columns),
+                                  index=self.input_df.index)
+        # Drop the original categorical columns from self.input_df
+        self.input_df = self.input_df.drop(columns=categorical_columns)
+        # Concatenate the encoded DataFrames with the remaining columns
+        self.input_df = pd.concat([self.input_df, df_encoded], axis=1)
+        print(f'input_df shape after one-hot encoding: {self.input_df.shape}')
