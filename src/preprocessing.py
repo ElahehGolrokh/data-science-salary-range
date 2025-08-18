@@ -89,3 +89,24 @@ class Splitter:
         save_dataframe(self.test_df_, self.test_path)
 
 
+class Preprocessor:
+    def __init__(self, input_df: pd.DataFrame,
+                 one_hot_encoder_path: str,
+                 mlb_path: str,
+                 scaler_path: str,
+                 columns_to_drop: list=None,
+                 src_df: pd.DataFrame=None,
+                 save_objects: bool=True,
+                 ):
+        self.input_df = input_df
+        self.columns_to_drop = columns_to_drop
+        self.src_df = src_df
+        self.one_hot_encoder_path = one_hot_encoder_path
+        self.mlb_path = mlb_path
+        self.scaler_path = scaler_path
+        self.save_objects = save_objects
+
+        # Learned attributes (set after pipeline run)
+        self.one_hot_encoder_ = None
+        self.mlb_ = None
+        self.scaler_ = None
