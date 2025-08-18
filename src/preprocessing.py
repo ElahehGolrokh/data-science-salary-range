@@ -41,12 +41,15 @@ class Splitter:
     test_df_ : pd.DataFrame | None
         Test set after split.
     """
-    def __init__(self, input_path: str,
+    def __init__(self,
+                 data_dir_path: str,
+                 input_path: str,
                  train_path: str,
                  test_path: str,
                  train_size: float,
                  random_state: int,
                  save_flag: bool = True,):
+        self.data_dir_path = data_dir_path
         self.input_path = input_path
         self.train_size = train_size
         self.random_state = random_state
@@ -90,18 +93,22 @@ class Splitter:
     def _save_splits(self) -> None:
         """Saves the train and test splits to disk."""
         self.logger.info("Saving train and test splits to disk.")
-        save_dataframe(self.train_df_, self.train_path)
-        save_dataframe(self.test_df_, self.test_path)
+        save_dataframe(self.train_df_, self.train_path, self.data_dir_path)
+        save_dataframe(self.test_df_, self.test_path, self.data_dir_path)
 
 
 class Preprocessor:
     def __init__(self,
+                 data_dir_path: str,
+                 artifacts_dir_path: str,
                  one_hot_encoder_path: str,
                  mlb_path: str,
                  scaler_path: str,
                  columns_to_drop: list=None,
                  save_objects: bool=True,
                  ):
+        self.data_dir_path = data_dir_path
+        self.artifacts_dir_path = artifacts_dir_path
         self.columns_to_drop = columns_to_drop
         self.one_hot_encoder_path = one_hot_encoder_path
         self.mlb_path = mlb_path
@@ -124,7 +131,7 @@ class Preprocessor:
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
         if preprocessed_path:
-            save_dataframe(input_df, preprocessed_path)
+            save_dataframe(input_df, preprocessed_path, self.data_dir_path)
         return input_df
 
     def _drop_useless_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
@@ -141,13 +148,13 @@ class Preprocessor:
 
     def _impute_missing_values(self,
                                input_df: pd.DataFrame,
-                               src_df: pd.DataFrame) -> pd.DataFrame:
+                               src_df: pd.DataFrame = None) -> pd.DataFrame:
         """
         Imputes missing values with the mode for categorical columns
         of the train data
         """
         for col in ['seniority_level', 'status', 'ownership']:
-            if not src_df:
+            if not src_df.bool():
                 input_df[col].fillna(input_df[col].mode()[0], inplace=True)
             else:
                 input_df[col].fillna(src_df[col].mode()[0], inplace=True)
@@ -155,7 +162,7 @@ class Preprocessor:
         # Impute missing values with the median for company_size because based
         # on describe stats, this column is skewed & so median is a better choice
         # for imputation than the mean
-        if not src_df:
+        if not src_df.bool():
             input_df['company_size'].fillna(input_df['company_size'].median(),
                                                  inplace=True)
         else:
@@ -180,21 +187,23 @@ class Preprocessor:
     
     def _one_hot_encode_categorical(self,
                                     input_df: pd.DataFrame,
-                                    src_df: pd.DataFrame) -> pd.DataFrame:
+                                    src_df: pd.DataFrame = None) -> pd.DataFrame:
         """
         One-hot encodes categorical columns
         """
         categorical_columns = ['seniority_level', 'status', 'location',
                                'headquarter', 'industry', 'ownership']
 
-        if not src_df:
+        if not src_df.bool():
             # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
             # and handle_unknown='ignore' to handle potential unseen categories in the test set
             self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
             # Fit and transform on the training data
             df_encoded = self.one_hot_encoder_.fit_transform(input_df[categorical_columns])
             if self.save_objects:
-                save_object_to_file(self.one_hot_encoder_, self.one_hot_encoder_path)
+                save_object_to_file(self.one_hot_encoder_,
+                                    self.one_hot_encoder_path,
+                                    self.artifacts_dir_path)
         else:
             # Load the encoder from the file
             self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
@@ -214,7 +223,7 @@ class Preprocessor:
 
     def _process_skills(self,
                         input_df: pd.DataFrame,
-                        src_df: pd.DataFrame) -> pd.DataFrame:
+                        src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Processes skills"""
         input_df['skills'] = input_df['skills'].apply(self._parse_skills)
         input_df['skills'] = input_df['skills'].apply(self._normalize_skills)
@@ -241,10 +250,10 @@ class Preprocessor:
 
     @staticmethod
     def _handle_high_cardinality(input_df: pd.DataFrame,
-                                 src_df: pd.DataFrame) -> pd.DataFrame:
+                                 src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Handles high cardinality: keep only top N skills"""
         N_TOP_SKILLS = 50
-        if not src_df:
+        if not src_df.bool():
             all_skills = [skill for sublist in input_df['skills'] for skill in sublist]
         else:
             all_skills = [skill for sublist in src_df['skills'] for skill in sublist]
@@ -255,13 +264,15 @@ class Preprocessor:
 
     def _fit_multilabel_binarizer(self,
                                   input_df: pd.DataFrame,
-                                  src_df: pd.DataFrame) -> pd.DataFrame:
+                                  src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Fits MultiLabelBinarizer on train, transform both"""
-        if not src_df:
+        if not src_df.bool():
             mlb = MultiLabelBinarizer()
             skills_encoded = mlb.fit_transform(input_df['skills'])
             if self.save_objects:
-                save_object_to_file(mlb, self.mlb_path)
+                save_object_to_file(mlb,
+                                    self.mlb_path,
+                                    self.artifacts_dir_path)
         else:
             mlb = joblib.load(self.mlb_path)
             skills_encoded = mlb.transform(input_df['skills'])
@@ -276,13 +287,15 @@ class Preprocessor:
 
     def _standardize(self,
                      input_df: pd.DataFrame,
-                     src_df: pd.DataFrame) -> pd.DataFrame:
+                     src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Standardizes numerical features"""
-        if not src_df:
+        if not src_df.bool():
             scaler = StandardScaler()
             scaled = scaler.fit_transform(input_df[['mean_salary', 'company_size']])
             if self.save_objects:
-                save_object_to_file(scaler, self.scaler_path)
+                save_object_to_file(scaler,
+                                    self.scaler_path,
+                                    self.artifacts_dir_path)
         else:
             scaler = joblib.load(self.scaler_path)
             scaled = scaler.transform(input_df[['mean_salary', 'company_size']])
