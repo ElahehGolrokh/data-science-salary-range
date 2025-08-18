@@ -110,3 +110,14 @@ class Preprocessor:
         self.one_hot_encoder_ = None
         self.mlb_ = None
         self.scaler_ = None
+    
+    def _drop_useless_features(self):
+        """Drops useless features"""
+        if not self.columns_to_drop:
+            self.columns_to_drop = ['min_salary',  # Not informative
+                    'max_salary',  # Not informative
+                    'revenue',  # Large number of missing values
+                    'company',  # Not informative
+                    'job_title',  # High frequency of dominant category
+                    ]
+        self.input_df.drop(columns=self.columns_to_drop, inplace=True)
