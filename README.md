@@ -10,10 +10,12 @@ This project builds a **data pipeline for estimating salaries for data science j
 ## 📂 Pipeline Overview  
 
 1. **Scraping (✅ Completed)** – Automated collection of raw job postings with Selenium  
-2. **Data Cleaning & Enrichment (🔄 In Progress)** – Extracting skills, experience, industries, and refining numerical & categorical features  
-3. **Exploratory Data Analysis (📊 Upcoming)** – Identifying trends in roles, seniority, required skills, and compensation  
-4. **Modeling (🤖 Planned)** – Predicting salaries and career paths based on job descriptions  
-5. **Inferential Statistics (📐 Planned)** – Deriving **confidence intervals** for data science roles  
+2. **Data Cleaning & Enrichment (✅ Completed)** – Extracting skills, experience, industries, and refining numerical & categorical features  
+3. **Exploratory Data Analysis (✅ Completed)** – Identifying trends in roles, seniority, required skills, and compensation 
+4. **Preprocessing (🔄 In Progress)**
+5. **Modeling (🔄 In Progress)** – Predicting salaries and career paths based on job descriptions 
+6. **Deploying (🤖 Planned)**
+7. **Inferential Statistics (📐 Planned)** – Deriving **confidence intervals** for data science roles  
 
 ---
 
@@ -92,11 +94,44 @@ To analyze trends in job roles, seniority levels, industries, required skills, a
 - Implemented in: `Notebooks/data_science_salary_EDA.ipynb`  
 - **Input**: `data/df_feature_engineered.csv`  
 
+## 🔹 4. Preprocessing
+
+### 🎯 Goal  
+To prepare the feature-engineered dataset for machine learning by handling missing values, encoding categorical features, processing skill stes, and scaling numerical variables.  
+
+### ⚙️ Technical Details  
+- Implemented in: `prepare.py`  
+- **Input**: `data/df_feature_engineered.csv`  
+- **Output**:            
+  - `data/preprocessed_train_df.csv` 
+  - `data/preprocessed_test_df.csv` 
+
+### ▶️ Quick Start  
+Run the preprocessing step directly with:  
+
+```bash
+python prepare.py
+```
+
+Arguments:
+
+🔄 In progress
+
+
+## 🔹 5. Model Building and Evaluation 
+
+### 🎯 Goal  
+To build predictive models for estimating salaries and evaluate their performance.  
+
+### ⚙️ Technical Details  
+- Implemented in: `train.py`  
+- **Input**: `data/preprocessed_train_df.csv`  
+- **Output**: Model artifacts (e.g., `.pkl` files)
 
 ## 📌 Next Steps  
  
-- Preprocessing for machine learning readiness
-- Model training for salary prediction
+- Evaluation
+- Deploying
 - Inferential analysis for confidence intervals
 
 ---
