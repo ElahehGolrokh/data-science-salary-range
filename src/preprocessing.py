@@ -7,7 +7,7 @@ import pandas as pd
 from collections import Counter
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from .utils import load_dataframe, save_dataframe
+from .utils import load_dataframe, save_dataframe, save_object_to_file
 
 
 class Splitter:
@@ -99,6 +99,7 @@ class Preprocessor:
                  one_hot_encoder_path: str,
                  mlb_path: str,
                  scaler_path: str,
+                 path_to_save: str,
                  columns_to_drop: list=None,
                  src_df: pd.DataFrame=None,
                  save_objects: bool=True,
@@ -109,12 +110,23 @@ class Preprocessor:
         self.one_hot_encoder_path = one_hot_encoder_path
         self.mlb_path = mlb_path
         self.scaler_path = scaler_path
+        self.path_to_save = path_to_save
         self.save_objects = save_objects
 
         # Learned attributes (set after pipeline run)
         self.one_hot_encoder_ = None
         self.mlb_ = None
         self.scaler_ = None
+    
+    def run(self):
+        self._drop_useless_features()
+        self._impute_missing_values()
+        self._remove_outliers(q=.99)
+        self._one_hot_encode_categorical()
+        self._process_skills()
+        self._standardize()
+        save_dataframe(self.input_df, self.path_to_save)
+        return self.input_df
     
     def _drop_useless_features(self):
         """Drops useless features"""
@@ -173,7 +185,7 @@ class Preprocessor:
             # Fit and transform on the training data
             df_encoded = self.one_hot_encoder_.fit_transform(self.input_df[categorical_columns])
             if self.save_objects:
-                self._save_object_to_file(self.one_hot_encoder_, self.one_hot_encoder_path)
+                save_object_to_file(self.one_hot_encoder_, self.one_hot_encoder_path)
         else:
             # Load the encoder from the file
             self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
@@ -231,7 +243,7 @@ class Preprocessor:
             mlb = MultiLabelBinarizer()
             skills_encoded = mlb.fit_transform(self.input_df['skills'])
             if self.save_objects:
-                self._save_object_to_file(mlb, self.mlb_path)
+                save_object_to_file(mlb, self.mlb_path)
         else:
             mlb = joblib.load(self.mlb_path)
             skills_encoded = mlb.transform(self.input_df['skills'])
@@ -249,7 +261,7 @@ class Preprocessor:
             scaler = StandardScaler()
             scaled = scaler.fit_transform(self.input_df[['mean_salary', 'company_size']])
             if self.save_objects:
-                self._save_object_to_file(scaler, self.scaler_path)
+                save_object_to_file(scaler, self.scaler_path)
         else:
             scaler = joblib.load(self.scaler_path)
             scaled = scaler.transform(self.input_df[['mean_salary', 'company_size']])
