@@ -108,7 +108,8 @@ class ModelingPipeline:
                  y_test: pd.Series,
                  selected_features_: list[str] = None,
                  feature_selection_flag: bool = True,
-                 compare_models_flag: bool = True):
+                 compare_models_flag: bool = False,
+                 train_flag: bool = True):
 
         # Store init params
         self.config = config
@@ -118,6 +119,7 @@ class ModelingPipeline:
         self.y_test = y_test
         self.feature_selection_flag = feature_selection_flag
         self.compare_models_flag = compare_models_flag
+        self.train_flag = train_flag
 
         # Parameters from config
         self.feature_counts = self.config.training.feature_counts
@@ -172,6 +174,7 @@ class ModelingPipeline:
         Runs the entire pipeline.
         """
         self._initial_settings()
+        # Feature selection step
         if self.feature_selection_flag:
             self._find_best_feature_counts()
             self._refit_rfe()
@@ -188,6 +191,7 @@ class ModelingPipeline:
                     raise ValueError("selected_features_ is None. You can either " +
                                      "set feature_selection_flag=True to perform feature " +
                                      "selection or give selected_features_ a default list.")
+        # Model comparison step
         if self.compare_models_flag:
             self._get_best_model()
             if self.save_flag:
@@ -200,12 +204,14 @@ class ModelingPipeline:
             self.best_model_ = self.final_models_[self.best_model_name_]
             self.logger.warning("Using default model: %s as the best model for training",
                                 self.best_model_name_)
-        self._final_fit()
-        if self.save_flag:
-            save_object_to_file(self.best_model_,
-                                self.model_path,
-                                self.config.paths.artifacts_dir)
-            self.logger.info("Saved best model to %s", self.model_path)
+        # Final fitting step
+        if self.train_flag:
+            self._final_fit()
+            if self.save_flag:
+                save_object_to_file(self.best_model_,
+                                    self.model_path,
+                                    self.config.paths.artifacts_dir)
+                self.logger.info("Saved best model to %s", self.model_path)
         self.logger.info('Pipeline execution completed successfully.')
 
     # feature selection
@@ -231,7 +237,7 @@ class ModelingPipeline:
             scores = cross_val_score(pipeline, self.X_train, self.y_train, cv=cv, scoring=self.scoring)
             mean_scores.append(np.mean(scores))
             self.logger.info("CV score for %s features: %.4f", n_features, np.mean(scores))
-        self.best_feature_counts_ = self.choose_features_from_elbow(mean_scores, self.feature_counts)
+        self.best_feature_counts_ = self._choose_features_from_elbow(mean_scores, self.feature_counts)
         if len(self.X_train.columns) < self.best_feature_counts_:
             raise ValueError(f"X_train must have at least {self.best_feature_counts_} features.")
 
@@ -290,7 +296,7 @@ class ModelingPipeline:
         self.best_model_.fit(self.X_train[self.selected_features_], self.y_train)
 
     @staticmethod
-    def choose_features_from_elbow(mean_scores: list[float], feature_counts: list[int],
+    def _choose_features_from_elbow(mean_scores: list[float], feature_counts: list[int],
                                    curve: str = 'concave', direction: str = 'increasing') -> int:
         """
         Given a list of mean CV scores and corresponding feature counts,
