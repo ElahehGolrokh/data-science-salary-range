@@ -154,7 +154,7 @@ class Preprocessor:
         of the train data
         """
         for col in ['seniority_level', 'status', 'ownership']:
-            if not src_df.bool():
+            if src_df is None:
                 input_df[col].fillna(input_df[col].mode()[0], inplace=True)
             else:
                 input_df[col].fillna(src_df[col].mode()[0], inplace=True)
@@ -162,7 +162,7 @@ class Preprocessor:
         # Impute missing values with the median for company_size because based
         # on describe stats, this column is skewed & so median is a better choice
         # for imputation than the mean
-        if not src_df.bool():
+        if src_df is None:
             input_df['company_size'].fillna(input_df['company_size'].median(),
                                                  inplace=True)
         else:
@@ -194,7 +194,7 @@ class Preprocessor:
         categorical_columns = ['seniority_level', 'status', 'location',
                                'headquarter', 'industry', 'ownership']
 
-        if not src_df.bool():
+        if src_df is None:
             # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
             # and handle_unknown='ignore' to handle potential unseen categories in the test set
             self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
@@ -253,7 +253,7 @@ class Preprocessor:
                                  src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Handles high cardinality: keep only top N skills"""
         N_TOP_SKILLS = 50
-        if not src_df.bool():
+        if src_df is None:
             all_skills = [skill for sublist in input_df['skills'] for skill in sublist]
         else:
             all_skills = [skill for sublist in src_df['skills'] for skill in sublist]
@@ -266,7 +266,7 @@ class Preprocessor:
                                   input_df: pd.DataFrame,
                                   src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Fits MultiLabelBinarizer on train, transform both"""
-        if not src_df.bool():
+        if src_df is None:
             mlb = MultiLabelBinarizer()
             skills_encoded = mlb.fit_transform(input_df['skills'])
             if self.save_objects:
@@ -289,7 +289,7 @@ class Preprocessor:
                      input_df: pd.DataFrame,
                      src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Standardizes numerical features"""
-        if not src_df.bool():
+        if src_df is None:
             scaler = StandardScaler()
             scaled = scaler.fit_transform(input_df[['mean_salary', 'company_size']])
             if self.save_objects:
