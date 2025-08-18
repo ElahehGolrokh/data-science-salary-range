@@ -12,7 +12,7 @@ from sklearn.model_selection import cross_val_score, KFold
 from sklearn.feature_selection import RFE
 from xgboost import XGBRegressor
 
-from .utils import build_models_from_config
+from .utils import build_models_from_config, get_default_model
 
 MODEL_MAP = {
     "LinearRegression": LinearRegression,
@@ -106,8 +106,7 @@ class ModelingPipeline:
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
                  X_test: pd.DataFrame,
-                 y_test: pd.Series,
-                 default_model: RegressorMixin,):
+                 y_test: pd.Series,):
 
         # Store init params
         self.config = config
@@ -117,7 +116,7 @@ class ModelingPipeline:
         self.y_test = y_test
         self.feature_counts = self.config.training.feature_counts
         self.random_state = self.config.training.random_state
-        self.model = default_model
+        self.model = get_default_model(self.config, MODEL_MAP)
         self.cv_splits = self.config.training.cv_splits
         self.shuffle = self.config.training.shuffle
         self.scoring = self.config.training.scoring

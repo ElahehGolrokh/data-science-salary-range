@@ -2,6 +2,8 @@ import joblib
 import os
 import pandas as pd
 
+from sklearn.base import RegressorMixin
+
 
 def load_dataframe(file_path: str) -> pd.DataFrame:
     """Loads a DataFrame from a CSV file."""
@@ -37,3 +39,11 @@ def build_models_from_config(config_dict: dict,
     for name, params in config_dict.items():
         models[name] = model_map[name](**params)
     return models
+
+
+def get_default_model(config_dict: dict,
+                      model_map: dict) -> RegressorMixin:
+    """Get the default model specified in the config."""
+    model_name = config_dict["training"]["default_model"]["name"]
+    model_params = config_dict["training"]["default_model"].get("params", {})
+    return model_map[model_name](**model_params)
