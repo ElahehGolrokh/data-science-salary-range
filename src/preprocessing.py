@@ -11,12 +11,12 @@ class Splitter:
 
     Example
     -------
-    >>> splitter = Splitter("data/feature_engineered/df_features.csv")
+    >>> splitter = Splitter("data/df_feature_engineered.csv")
     >>> train_df, test_df = splitter.split()
 
     Parameters
     ----------
-    input_path : str
+    input_path : str, default="data/df_feature_engineered.csv"
         Path to the input dataset (CSV).
     train_size : float, default=0.8
         Proportion of the dataset to include in the train split. Must be between 0 and 1.
@@ -24,11 +24,9 @@ class Splitter:
         Random seed for reproducibility.
     save_flag : bool, default=True
         Whether to save the resulting train and test splits to disk.
-    dir_path : str, default="data/preprocessed"
-        Directory to save the processed data.
-    train_path : str, default="train.csv"
+    train_path : str, default="data/train_df.csv"
         Filename for the training set.
-    test_path : str, default="test.csv"
+    test_path : str, default="data/test_df.csv"
         Filename for the test set.
 
     Attributes
@@ -39,17 +37,15 @@ class Splitter:
         Test set after split.
     """
     def __init__(self, input_path: str,
-                 train_size: float = 0.8,
-                 random_state: int = 42,
-                 save_flag: bool = True,
-                 dir_path: str = "data/preprocessed",
-                 train_path: str = "train.csv",
-                 test_path: str = "test.csv"):
+                 train_path: str,
+                 test_path: str,
+                 train_size: float,
+                 random_state: int,
+                 save_flag: bool = True,):
         self.input_path = input_path
         self.train_size = train_size
         self.random_state = random_state
         self.save_flag = save_flag
-        self.dir_path = dir_path
         self.train_path = train_path
         self.test_path = test_path
 
@@ -89,13 +85,7 @@ class Splitter:
     def _save_splits(self) -> None:
         """Saves the train and test splits to disk."""
         self.logger.info("Saving train and test splits to disk.")
-        # create directory if it doesn't exist
-        os.makedirs(self.dir_path, exist_ok=True)
-        train_path = os.path.join(self.dir_path, self.train_path)
-        test_path = os.path.join(self.dir_path, self.test_path)
-        if os.path.exists(train_path) or os.path.exists(test_path):
-            self.logger.warning("Train/Test files already exist and will be overwritten.")
-        save_dataframe(self.train_df_, train_path)
-        save_dataframe(self.test_df_, test_path)
+        save_dataframe(self.train_df_, self.train_path)
+        save_dataframe(self.test_df_, self.test_path)
 
 
