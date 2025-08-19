@@ -1,74 +1,65 @@
-import logging
 import numpy as np
 import pandas as pd
 
 from kneed import KneeLocator
 from sklearn.base import RegressorMixin
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.feature_selection import RFE
-from xgboost import XGBRegressor
 
-from .utils import build_models_from_config, \
-    get_default_model, save_object_to_file, \
-    load_object_from_file
-
-MODEL_MAP = {
-    "LinearRegression": LinearRegression,
-    "Lasso": Lasso,
-    "Ridge": Ridge,
-    "RandomForest": RandomForestRegressor,
-    "GradientBoosting": GradientBoostingRegressor,
-    "XGB": XGBRegressor,
-}
+from .utils import get_default_model, save_object_to_file, \
+                   load_object_from_file
+from .base import BaseModelingPipeline, MODEL_MAP
 
 
-class ModelSelector:
+class ModelSelector(BaseModelingPipeline):
     """
     Pipeline for feature selection and model comparison in regression tasks.
 
+    Responsibilities
+    ----------------
+    - Evaluates feature subsets using RFE and cross-validation.
+    - Compares multiple candidate models.
+    - Selects the best model based on mean CV score.
+    - Stores the selected features and chosen model.
 
-    This class performs Recursive Feature Elimination (RFE) to select
-    informative features, compares candidate regression models via
-    cross-validation, and identifies the best model based on performance.
-
+    Inherits from
+    -------------
+    BaseModelingPipeline : Provides logging, error handling, and model registry.
 
     Parameters
     ----------
-    config : dict
-    Configuration object containing model and training parameters.
-    X_train : pd.DataFrame
-        Training feature matrix.
-    y_train : pd.Series
-        Training target values.
-    selected_features_ : list of str, default=None
-        Predefined list of selected features. If None, RFE is performed.
     feature_selection_flag : bool, default=True
         Whether to perform feature selection.
     compare_models_flag : bool, default=False
         Whether to compare models and select the best one.
-
+    feature_counts : list of int, default=None
+        List of feature counts to consider during selection.
+    random_state : int, default=None
+        Random seed for reproducibility.
+    model : RegressorMixin, default=None
+        The regression model to use. If None, a default model will be selected.
+    cv_splits : int, default=5
+        Number of cross-validation splits.
+    shuffle : bool, default=True
+        Whether to shuffle the data before splitting.
+    scoring : str, default='neg_mean_squared_error'
+        Scoring metric for model evaluation.
+    rfe_step : int, default=1
+        Number of features to remove at each step of RFE.
 
     Attributes
     ----------
-    final_models_ : dict of {str: RegressorMixin}
-        Candidate models built from configuration.
-    selected_features_ : list of str
-        Features selected by RFE.
     best_feature_counts_ : int
-        Optimal number of features determined by cross-validation and elbow method.
-    best_model_ : RegressorMixin
-        Best-performing model after comparison.
+        Optimal number of features determined during selection.
     best_model_name_ : str
         Name of the best-performing model.
 
-
-    Methods
+    Public Methods
     -------
     run()
-    Executes feature selection and/or model comparison.
+        Executes feature selection and/or model comparison.
 
 
     Examples
@@ -90,11 +81,8 @@ class ModelSelector:
                  selected_features_: list[str] = None,
                  feature_selection_flag: bool = True,
                  compare_models_flag: bool = False):
-
+        super().__init__(config, X_train, y_train, selected_features_)
         # Store init params
-        self.config = config
-        self.X_train = X_train
-        self.y_train = y_train
         self.feature_selection_flag = feature_selection_flag
         self.compare_models_flag = compare_models_flag
 
@@ -106,45 +94,15 @@ class ModelSelector:
         self.shuffle = self.config.training.shuffle
         self.scoring = self.config.training.scoring
         self.rfe_step = self.config.training.rfe_step
-        self.model_name_path = self.config.training.model_name_path
-        self.selector_path = self.config.training.selector_path
-        self.save_flag = self.config.training.save_flag
-        self.logging_flag = self.config.training.logging_flag
 
         # Learned attributes (set after pipeline run)
-        self.final_models_: dict[str, RegressorMixin] = None
-        self.selected_features_ = selected_features_
         self.best_feature_counts_: int | None = None
-        self.best_model_: RegressorMixin | None = None
         self.best_model_name_: str | None = None
-
-    # initialization methods
-    def _handle_shape_error(self):
-        """
-        Raises a ValueError if the shapes of the input data do not match.
-        """
-        if self.X_train.shape[0] != self.y_train.shape[0]:
-            raise ValueError("X_train and y_train must have the same number of samples.")
-
-    def _initial_settings(self) -> None:
-        """
-        Sets the final models to choose from.
-        """
-        self._handle_shape_error()
-        # Configure logging to output to the console
-        if self.logging_flag:
-            logging.basicConfig(level=logging.INFO,
-                                format='%(asctime)s - %(levelname)s - %(message)s')
-            self.logger = logging.getLogger(__name__)
-            self.logger.info("Logging configured.")
-        self.final_models_ = build_models_from_config(self.config.training.final_models,
-                                                      MODEL_MAP)
 
     def run(self) -> None:
         """
         Runs the entire pipeline.
         """
-        self._initial_settings()
         # Feature selection step
         if self.feature_selection_flag:
             self._find_best_feature_counts()
@@ -174,7 +132,6 @@ class ModelSelector:
             try:
                 with open(self.model_name_path, "r") as f:
                     self.best_model_name_ = f.read().strip()
-                self.best_model_ = self.final_models_[self.best_model_name_]
             except Exception as e:
                 raise ValueError("best_model_name_ is None")
         return self.best_model_name_, self.selected_features_
@@ -249,7 +206,6 @@ class ModelSelector:
             self.logger.info('Getting the best trained model...')
         comparison_df = self._compare_models()
         self.best_model_name_ = comparison_df.idxmax(axis=1)[0]
-        self.best_model_ = self.final_models_[self.best_model_name_]
         self.logger.info("The best model based on mean cross-validation score is: %s", self.best_model_name_)
 
     @staticmethod
@@ -289,7 +245,7 @@ class ModelSelector:
         return int(kl.knee)
 
 
-class ModelTrainer:
+class ModelTrainer(BaseModelingPipeline):
     """
     Train the best regression model on selected features.
 
@@ -298,34 +254,24 @@ class ModelTrainer:
     (identified by ``ModelSelector``), fits it on the full training set,
     and optionally saves the final model.
 
+    Inherits from
+    -------------
+    BaseModelingPipeline : Provides logging, error handling, and model registry.
 
     Parameters
     ----------
-    config : dict
-        Configuration object containing model and training parameters.
-    X_train : pd.DataFrame
-        Training feature matrix.
-    y_train : pd.Series
-        Training target values.
-    selected_features_ : list of str, default=None
-        List of selected features. If None, features are loaded from file.
-    best_model_name_ : str, default=None
-        Name of the best model. If None, it is loaded from file.
-
+    model_path : str
+        Path to save the trained model file.
 
     Attributes
     ----------
-    final_models_ : dict of {str: RegressorMixin}
-        Candidate models built from configuration.
-    selected_features_ : list of str
-        Features used for training.
-    best_model_name_ : str
-        Name of the chosen model.
+    best_model_name_ : str, default=None
+        Name of the best model. If None, it is loaded from file.
     best_model_ : RegressorMixin
         Fitted regression model.
 
 
-    Methods
+    Public Methods
     -------
     run()
         Executes final training and saves the fitted model if required.
@@ -348,51 +294,17 @@ class ModelTrainer:
                  selected_features_: list[str] = None,
                  best_model_name_: str = None):
 
-        # Store init params
-        self.config = config
-        self.X_train = X_train
-        self.y_train = y_train
+        super().__init__(config, X_train, y_train, selected_features_)
+        self.best_model_name_ = best_model_name_
+        self.best_model_ = None
 
         # Parameters from config
-        self.model_name_path = self.config.training.model_name_path
         self.model_path = self.config.training.model_path
-        self.selector_path = self.config.training.selector_path
-        self.save_flag = self.config.training.save_flag
-        self.logging_flag = self.config.training.logging_flag
-
-        # Learned attributes (set after pipeline run)
-        self.final_models_: dict[str, RegressorMixin] = None
-        self.selected_features_ = selected_features_
-        self.best_model_name_ = best_model_name_
-        self.best_model_: RegressorMixin | None = None
-
-    # initialization methods
-    def _handle_shape_error(self):
-        """
-        Raises a ValueError if the shapes of the input data do not match.
-        """
-        if self.X_train.shape[0] != self.y_train.shape[0]:
-            raise ValueError("X_train and y_train must have the same number of samples.")
-
-    def _initial_settings(self) -> None:
-        """
-        Sets the final models to choose from.
-        """
-        self._handle_shape_error()
-        # Configure logging to output to the console
-        if self.logging_flag:
-            logging.basicConfig(level=logging.INFO,
-                                format='%(asctime)s - %(levelname)s - %(message)s')
-            self.logger = logging.getLogger(__name__)
-            self.logger.info("Logging configured.")
-        self.final_models_ = build_models_from_config(self.config.training.final_models,
-                                                      MODEL_MAP)
 
     def run(self) -> None:
         """
         Runs the entire pipeline.
         """
-        self._initial_settings()
         if self.selected_features_ is None:
             try:
                 self.selected_features_ = load_object_from_file(self.selector_path)
