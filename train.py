@@ -3,7 +3,7 @@ import pandas as pd
 
 from omegaconf import OmegaConf
 
-from src.training import ModelingPipeline
+from src.training import ModelSelector, ModelTrainer
 
 
 parser = argparse.ArgumentParser(
@@ -39,17 +39,30 @@ def main(feature_selection: bool,
 
     print(X_train.shape, y_train.shape)
     print(X_test.shape, y_test.shape)
+    best_model_name_, selected_features_ = None, None
 
-    pipeline = ModelingPipeline(config,
-                                X_train,
-                                y_train,
-                                X_test,
-                                y_test,
-                                feature_selection_flag=feature_selection,
-                                compare_models_flag=compare_models,
-                                train_flag=train_flag)
-    pipeline.run_pipeline()
-    print(f'pipeline.best_feature_counts_ : {pipeline.best_feature_counts_}')
+    # Feature selection and model comparison
+    if feature_selection or compare_models:
+        model_selector = ModelSelector(config,
+                                       X_train,
+                                       y_train,
+                                       X_test,
+                                       y_test,
+                                       feature_selection_flag=feature_selection,
+                                       compare_models_flag=compare_models)
+        best_model_name_, selected_features_ = model_selector.run()
+
+    # Model training
+    if train_flag:
+        model_trainer = ModelTrainer(config,
+                                     X_train,
+                                     y_train,
+                                     X_test,
+                                     y_test,
+                                     best_model_name_=best_model_name_,
+                                     selected_features_=selected_features_)
+        model_trainer.run()
+    print(f'model_selector.best_feature_counts_ : {model_selector.best_feature_counts_}')
 
 if __name__ == "__main__":
     main(args.feature_selection,
