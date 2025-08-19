@@ -25,80 +25,67 @@ MODEL_MAP = {
 }
 
 
-class ModelingPipeline:
+class ModelSelector:
     """
-    End-to-end regression pipeline with RFE-based feature selection,
-    model comparison, final training, and artifact saving.
+    Pipeline for feature selection and model comparison in regression tasks.
 
-    Workflow
-    --------
-    1) Tune the number of features with RFE inside cross-validation.
-    2) Refit RFE on the full training data with the chosen feature count.
-    3) Compare candidate models via cross-validation on selected features.
-    4) Fit the best model on the full training data.
-    6) Optionally persist artifacts (model + selected features).
+
+    This class performs Recursive Feature Elimination (RFE) to select
+    informative features, compares candidate regression models via
+    cross-validation, and identifies the best model based on performance.
+
 
     Parameters
     ----------
+    config : dict
+    Configuration object containing model and training parameters.
     X_train : pd.DataFrame
-        Training features.
+        Training feature matrix.
     y_train : pd.Series
-        Training target.
+        Training target values.
     X_test : pd.DataFrame
-        Test features.
+        Test feature matrix.
     y_test : pd.Series
-        Test target.
-    feature_counts : list[int] or None, default=None
-        Candidate RFE feature counts to test. Defaults to [5, 10, 15, 20, 30, 40].
-    random_state : int, default=42
-        Random seed for reproducibility.
-    default_model : sklearn.base.RegressorMixin or None, default=None
-        Base model used for RFE. Defaults to RandomForestRegressor.
-    cv_splits : int, default=5
-        Number of cross-validation folds.
-    shuffle : bool, default=True
-        Whether to shuffle data during CV splits.
-    scoring : str, default="neg_mean_squared_error"
-        Scoring metric for cross-validation.
-    final_models_ : dict[str, sklearn.base.RegressorMixin] or None, default=None
-        Candidate models for final comparison. If None, defaults are set.
-    rfe_step : int, default=2
-        Step size for RFE elimination.
-    model_path : str, default="final_model.pkl"
-        Path to save the fitted model.
-    selector_path : str, default="final_selector.pkl"
-        Path to save the selected feature names.
-    save_flag : bool, default=True
-        Whether to save the artifacts.
-    logging_flag : bool, default=True
-        Whether to use logging for messages.
+        Test target values.
+    selected_features_ : list of str, default=None
+        Predefined list of selected features. If None, RFE is performed.
+    feature_selection_flag : bool, default=True
+        Whether to perform feature selection.
+    compare_models_flag : bool, default=False
+        Whether to compare models and select the best one.
+
 
     Attributes
     ----------
+    final_models_ : dict of {str: RegressorMixin}
+        Candidate models built from configuration.
     selected_features_ : list of str
-        Feature names chosen by RFE, available after :meth:`run_pipeline`.
+        Features selected by RFE.
     best_feature_counts_ : int
-        Best number of features selected, available after :meth:`run_pipeline`.
-    best_model_ : sklearn.base.RegressorMixin
-        The fitted best model, available after :meth:`run_pipeline`.
+        Optimal number of features determined by cross-validation and elbow method.
+    best_model_ : RegressorMixin
+        Best-performing model after comparison.
     best_model_name_ : str
-        Name of the best model, available after :meth:`run_pipeline`.
+        Name of the best-performing model.
 
-    Public Methods
+
+    Methods
     -------
-    run_pipeline()
-        Execute the full workflow end-to-end.
+    run()
+    Executes feature selection and/or model comparison.
+
 
     Examples
     --------
-    >>> pipe = ModelingPipeline(
-    ...     X_train, y_train, X_test, y_test,
-    ...     config=config)
-    >>> pipe.run_pipeline()
-    >>> pipe.best_model_name_
+    >>> from sklearn.datasets import make_regression
+    >>> import pandas as pd
+    >>> X, y = make_regression(n_samples=100, n_features=20, noise=0.1, random_state=42)
+    >>> X = pd.DataFrame(X)
+    >>> y = pd.Series(y)
+    >>> selector = ModelSelector(config={}, X_train=X, y_train=y, X_test=X, y_test=y)
+    >>> selector.run()
+    >>> selector.best_model_name_
     'RandomForest'
-    >>> pipe.selected_features_[:5]
-    ['skill_python', 'yoe', 'level_L5', 'location_US_CA', 'industry_SWE']
     """
     def __init__(self,
                  config: dict,
@@ -108,8 +95,7 @@ class ModelingPipeline:
                  y_test: pd.Series,
                  selected_features_: list[str] = None,
                  feature_selection_flag: bool = True,
-                 compare_models_flag: bool = False,
-                 train_flag: bool = True):
+                 compare_models_flag: bool = False):
 
         # Store init params
         self.config = config
@@ -119,7 +105,6 @@ class ModelingPipeline:
         self.y_test = y_test
         self.feature_selection_flag = feature_selection_flag
         self.compare_models_flag = compare_models_flag
-        self.train_flag = train_flag
 
         # Parameters from config
         self.feature_counts = self.config.training.feature_counts
@@ -129,7 +114,7 @@ class ModelingPipeline:
         self.shuffle = self.config.training.shuffle
         self.scoring = self.config.training.scoring
         self.rfe_step = self.config.training.rfe_step
-        self.model_path = self.config.training.model_path
+        self.model_name_path = self.config.training.model_name_path
         self.selector_path = self.config.training.selector_path
         self.save_flag = self.config.training.save_flag
         self.logging_flag = self.config.training.logging_flag
@@ -169,7 +154,7 @@ class ModelingPipeline:
         self.final_models_ = build_models_from_config(self.config.training.final_models,
                                                       MODEL_MAP)
 
-    def run_pipeline(self) -> None:
+    def run(self) -> None:
         """
         Runs the entire pipeline.
         """
@@ -195,24 +180,18 @@ class ModelingPipeline:
         if self.compare_models_flag:
             self._get_best_model()
             if self.save_flag:
-                save_object_to_file(self.best_model_,
-                                    self.model_path,
-                                    self.config.paths.artifacts_dir)
-                self.logger.info("Saved best model to %s", self.model_path)
+                # Save only the name of the best model
+                with open(self.model_name_path, "w") as f:
+                    f.write(self.best_model_name_)
+                self.logger.info("Saved best model name to %s", self.model_name_path)
         else:
-            self.best_model_name_ = self.config.training.default_model.name
-            self.best_model_ = self.final_models_[self.best_model_name_]
-            self.logger.warning("Using default model: %s as the best model for training",
-                                self.best_model_name_)
-        # Final fitting step
-        if self.train_flag:
-            self._final_fit()
-            if self.save_flag:
-                save_object_to_file(self.best_model_,
-                                    self.model_path,
-                                    self.config.paths.artifacts_dir)
-                self.logger.info("Saved best model to %s", self.model_path)
-        self.logger.info('Pipeline execution completed successfully.')
+            try:
+                with open(self.model_name_path, "r") as f:
+                    self.best_model_name_ = f.read().strip()
+                self.best_model_ = self.final_models_[self.best_model_name_]
+            except Exception as e:
+                raise ValueError("best_model_name_ is None")
+        return self.best_model_name_, self.selected_features_
 
     # feature selection
     def _find_best_feature_counts(self,) -> int:
@@ -254,7 +233,7 @@ class ModelingPipeline:
         rfe.fit(self.X_train, self.y_train)
         self.selected_features_ = self.X_train.columns[rfe.support_].tolist()
 
-    # model training
+    # model selection
     def _compare_models(self) -> pd.DataFrame:
         """
         Trains a range of models on the selected features.
@@ -286,14 +265,6 @@ class ModelingPipeline:
         self.best_model_name_ = comparison_df.idxmax(axis=1)[0]
         self.best_model_ = self.final_models_[self.best_model_name_]
         self.logger.info("The best model based on mean cross-validation score is: %s", self.best_model_name_)
-
-    def _final_fit(self) -> None:
-        """
-        Fits the best model on the full training set.
-        """
-        if self.logging_flag:
-            self.logger.info('Fitting the best model on the full training set...')
-        self.best_model_.fit(self.X_train[self.selected_features_], self.y_train)
 
     @staticmethod
     def _choose_features_from_elbow(mean_scores: list[float], feature_counts: list[int],
@@ -330,3 +301,156 @@ class ModelingPipeline:
             return feature_counts[np.argmax(mean_scores)]
 
         return int(kl.knee)
+
+
+class ModelTrainer:
+    """
+    Train the best regression model on selected features.
+
+
+    This class loads previously selected features and the chosen model
+    (identified by ``ModelSelector``), fits it on the full training set,
+    and optionally saves the final model.
+
+
+    Parameters
+    ----------
+    config : dict
+        Configuration object containing model and training parameters.
+    X_train : pd.DataFrame
+        Training feature matrix.
+    y_train : pd.Series
+        Training target values.
+    X_test : pd.DataFrame
+        Test feature matrix.
+    y_test : pd.Series
+        Test target values.
+    selected_features_ : list of str, default=None
+        List of selected features. If None, features are loaded from file.
+    best_model_name_ : str, default=None
+        Name of the best model. If None, it is loaded from file.
+
+
+    Attributes
+    ----------
+    final_models_ : dict of {str: RegressorMixin}
+        Candidate models built from configuration.
+    selected_features_ : list of str
+        Features used for training.
+    best_model_name_ : str
+        Name of the chosen model.
+    best_model_ : RegressorMixin
+        Fitted regression model.
+
+
+    Methods
+    -------
+    run()
+        Executes final training and saves the fitted model if required.
+
+
+    Examples
+    --------
+    >>> from sklearn.datasets import make_regression
+    >>> import pandas as pd
+    >>> X, y = make_regression(n_samples=100, n_features=20, noise=0.1, random_state=42)
+    >>> X = pd.DataFrame(X)
+    >>> y = pd.Series(y)
+    >>> trainer = ModelTrainer(config={}, X_train=X, y_train=y, X_test=X, y_test=y)
+    >>> trainer.run()
+    """
+    def __init__(self,
+                 config: dict,
+                 X_train: pd.DataFrame,
+                 y_train: pd.Series,
+                 X_test: pd.DataFrame,
+                 y_test: pd.Series,
+                 selected_features_: list[str] = None,
+                 best_model_name_: str = None):
+
+        # Store init params
+        self.config = config
+        self.X_train = X_train
+        self.y_train = y_train
+        self.X_test = X_test
+        self.y_test = y_test
+
+        # Parameters from config
+        self.model_name_path = self.config.training.model_name_path
+        self.model_path = self.config.training.model_path
+        self.selector_path = self.config.training.selector_path
+        self.save_flag = self.config.training.save_flag
+        self.logging_flag = self.config.training.logging_flag
+
+        # Learned attributes (set after pipeline run)
+        self.final_models_: dict[str, RegressorMixin] = None
+        self.selected_features_ = selected_features_
+        self.best_model_name_ = best_model_name_
+        self.best_model_: RegressorMixin | None = None
+
+    # initialization methods
+    def _handle_shape_error(self):
+        """
+        Raises a ValueError if the shapes of the input data do not match.
+        """
+        if self.X_train.shape[0] != self.y_train.shape[0]:
+            raise ValueError("X_train and y_train must have the same number of samples.")
+
+        if self.X_test.shape[0] != self.y_test.shape[0]:
+            raise ValueError("X_test and y_test must have the same number of samples.")
+
+        if self.X_train.shape[1] != self.X_test.shape[1]:
+            raise ValueError("X_train and X_test must have the same number of features.")
+
+    def _initial_settings(self) -> None:
+        """
+        Sets the final models to choose from.
+        """
+        self._handle_shape_error()
+        # Configure logging to output to the console
+        if self.logging_flag:
+            logging.basicConfig(level=logging.INFO,
+                                format='%(asctime)s - %(levelname)s - %(message)s')
+            self.logger = logging.getLogger(__name__)
+            self.logger.info("Logging configured.")
+        self.final_models_ = build_models_from_config(self.config.training.final_models,
+                                                      MODEL_MAP)
+
+    def run(self) -> None:
+        """
+        Runs the entire pipeline.
+        """
+        self._initial_settings()
+        if self.selected_features_ is None:
+            try:
+                self.selected_features_ = load_object_from_file(self.selector_path)
+                self.logger.info("Loaded selected features: %s", self.selected_features_)
+            except Exception as e:
+                raise ValueError("selected_features_ is None. You can either " +
+                                 "run `ModelSelector.run()` to perform feature " +
+                                 "selection or give selected_features_ a default list.")
+        if self.best_model_name_ is None:
+            try:
+                with open(self.model_name_path, "r") as f:
+                    self.best_model_name_ = f.read().strip()
+            except Exception as e:
+                raise ValueError("best_model_name_ is None")
+
+        self.best_model_ = self.final_models_[self.best_model_name_]
+
+        # Final fitting step
+        self._fit()
+        if self.save_flag:
+            save_object_to_file(self.best_model_,
+                                self.model_path,
+                                self.config.paths.artifacts_dir)
+            self.logger.info("Saved best model to %s", self.model_path)
+        self.logger.info('Pipeline execution completed successfully.')
+
+    def _fit(self) -> None:
+        """
+        Fits the best model on the full training set.
+        """
+        if self.logging_flag:
+            self.logger.info('Fitting the best model on the full training set...')
+        self.best_model_.fit(self.X_train[self.selected_features_], self.y_train)
