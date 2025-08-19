@@ -2,6 +2,7 @@ import joblib
 import os
 import pandas as pd
 
+from pathlib import Path
 from sklearn.base import RegressorMixin
 
 
@@ -54,3 +55,11 @@ def get_default_model(config_dict: dict,
     model_name = config_dict["training"]["default_model"]["name"]
     model_params = config_dict["training"]["default_model"].get("params", {})
     return model_map[model_name](**model_params)
+
+
+def get_root() -> Path:
+    """Get the root directory of the project."""
+    root = Path(__file__).resolve().parent
+    while not (root / ".git").exists() and root != root.parent:
+        root = root.parent
+    return root
