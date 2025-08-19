@@ -33,7 +33,6 @@ def main(feature_selection: bool,
     loader = DataLoader(config.paths.preprocessed_train,
                         config.target)
     X_train, y_train = loader.load()
-    print(X_train.shape, y_train.shape)
     best_model_name_, selected_features_ = None, None
 
     # Feature selection and model comparison
