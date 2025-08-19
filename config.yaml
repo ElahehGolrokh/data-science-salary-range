@@ -5,6 +5,8 @@ seed: 42
 url: 'https://www.example.com/jobs'
 pages: 500
 
+target: mean_salary
+
 paths:
   data_dir: 'data'
   raw_data: 'data/raw_df.csv'
