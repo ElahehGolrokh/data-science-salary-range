@@ -3,6 +3,7 @@ import pandas as pd
 
 from omegaconf import OmegaConf
 
+from src.data_loader import DataLoader
 from src.training import ModelSelector, ModelTrainer
 
 
@@ -29,16 +30,10 @@ config = OmegaConf.load('config.yaml')
 def main(feature_selection: bool,
          compare_models: bool,
          train_flag: bool):
-    train_scaled = pd.read_csv('data/preprocessed_train_df.csv')
-    X_train = train_scaled.drop('mean_salary', axis=1)
-    y_train = train_scaled['mean_salary']
-
-    test_scaled = pd.read_csv('data/preprocessed_test_df.csv')
-    X_test = test_scaled.drop('mean_salary', axis=1)
-    y_test = test_scaled['mean_salary']
-
+    loader = DataLoader(config.paths.preprocessed_train,
+                        config.target)
+    X_train, y_train = loader.load()
     print(X_train.shape, y_train.shape)
-    print(X_test.shape, y_test.shape)
     best_model_name_, selected_features_ = None, None
 
     # Feature selection and model comparison
