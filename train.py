@@ -46,8 +46,6 @@ def main(feature_selection: bool,
         model_selector = ModelSelector(config,
                                        X_train,
                                        y_train,
-                                       X_test,
-                                       y_test,
                                        feature_selection_flag=feature_selection,
                                        compare_models_flag=compare_models)
         best_model_name_, selected_features_ = model_selector.run()
@@ -57,8 +55,6 @@ def main(feature_selection: bool,
         model_trainer = ModelTrainer(config,
                                      X_train,
                                      y_train,
-                                     X_test,
-                                     y_test,
                                      best_model_name_=best_model_name_,
                                      selected_features_=selected_features_)
         model_trainer.run()
