@@ -43,10 +43,6 @@ class ModelSelector:
         Training feature matrix.
     y_train : pd.Series
         Training target values.
-    X_test : pd.DataFrame
-        Test feature matrix.
-    y_test : pd.Series
-        Test target values.
     selected_features_ : list of str, default=None
         Predefined list of selected features. If None, RFE is performed.
     feature_selection_flag : bool, default=True
@@ -82,7 +78,7 @@ class ModelSelector:
     >>> X, y = make_regression(n_samples=100, n_features=20, noise=0.1, random_state=42)
     >>> X = pd.DataFrame(X)
     >>> y = pd.Series(y)
-    >>> selector = ModelSelector(config={}, X_train=X, y_train=y, X_test=X, y_test=y)
+    >>> selector = ModelSelector(config={}, X_train=X, y_train=y)
     >>> selector.run()
     >>> selector.best_model_name_
     'RandomForest'
@@ -91,8 +87,6 @@ class ModelSelector:
                  config: dict,
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
-                 X_test: pd.DataFrame,
-                 y_test: pd.Series,
                  selected_features_: list[str] = None,
                  feature_selection_flag: bool = True,
                  compare_models_flag: bool = False):
@@ -101,8 +95,6 @@ class ModelSelector:
         self.config = config
         self.X_train = X_train
         self.y_train = y_train
-        self.X_test = X_test
-        self.y_test = y_test
         self.feature_selection_flag = feature_selection_flag
         self.compare_models_flag = compare_models_flag
 
@@ -133,12 +125,6 @@ class ModelSelector:
         """
         if self.X_train.shape[0] != self.y_train.shape[0]:
             raise ValueError("X_train and y_train must have the same number of samples.")
-
-        if self.X_test.shape[0] != self.y_test.shape[0]:
-            raise ValueError("X_test and y_test must have the same number of samples.")
-
-        if self.X_train.shape[1] != self.X_test.shape[1]:
-            raise ValueError("X_train and X_test must have the same number of features.")
 
     def _initial_settings(self) -> None:
         """
@@ -321,10 +307,6 @@ class ModelTrainer:
         Training feature matrix.
     y_train : pd.Series
         Training target values.
-    X_test : pd.DataFrame
-        Test feature matrix.
-    y_test : pd.Series
-        Test target values.
     selected_features_ : list of str, default=None
         List of selected features. If None, features are loaded from file.
     best_model_name_ : str, default=None
@@ -356,15 +338,13 @@ class ModelTrainer:
     >>> X, y = make_regression(n_samples=100, n_features=20, noise=0.1, random_state=42)
     >>> X = pd.DataFrame(X)
     >>> y = pd.Series(y)
-    >>> trainer = ModelTrainer(config={}, X_train=X, y_train=y, X_test=X, y_test=y)
+    >>> trainer = ModelTrainer(config={}, X_train=X, y_train=y)
     >>> trainer.run()
     """
     def __init__(self,
                  config: dict,
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
-                 X_test: pd.DataFrame,
-                 y_test: pd.Series,
                  selected_features_: list[str] = None,
                  best_model_name_: str = None):
 
@@ -372,8 +352,6 @@ class ModelTrainer:
         self.config = config
         self.X_train = X_train
         self.y_train = y_train
-        self.X_test = X_test
-        self.y_test = y_test
 
         # Parameters from config
         self.model_name_path = self.config.training.model_name_path
@@ -395,12 +373,6 @@ class ModelTrainer:
         """
         if self.X_train.shape[0] != self.y_train.shape[0]:
             raise ValueError("X_train and y_train must have the same number of samples.")
-
-        if self.X_test.shape[0] != self.y_test.shape[0]:
-            raise ValueError("X_test and y_test must have the same number of samples.")
-
-        if self.X_train.shape[1] != self.X_test.shape[1]:
-            raise ValueError("X_train and X_test must have the same number of features.")
 
     def _initial_settings(self) -> None:
         """
