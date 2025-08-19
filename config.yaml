@@ -61,3 +61,7 @@ training:
   selector_path: artifacts/final_selected_features.pkl
   save_flag: True
   logging_flag: True
+
+exporting:
+  repo_id: 'your-username/ds-salary'
+  api_token: 'your-hf-api-token'
