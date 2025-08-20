@@ -110,6 +110,8 @@ class Preprocessor:
         self.one_hot_encoder_path = config.paths.one_hot_encoder
         self.mlb_path = config.paths.mlb
         self.scaler_path = config.paths.scaler
+        self.numerical_features = config.preprocessing.numerical_features
+        self.categorical_features = config.preprocessing.categorical_features
 
         # Learned attributes (set after pipeline run)
         self.one_hot_encoder_ = None
@@ -180,15 +182,12 @@ class Preprocessor:
         """
         One-hot encodes categorical columns
         """
-        categorical_columns = ['seniority_level', 'status', 'location',
-                               'headquarter', 'industry', 'ownership']
-
         if src_df is None:
             # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
             # and handle_unknown='ignore' to handle potential unseen categories in the test set
             self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
             # Fit and transform on the training data
-            df_encoded = self.one_hot_encoder_.fit_transform(input_df[categorical_columns])
+            df_encoded = self.one_hot_encoder_.fit_transform(input_df[self.categorical_features])
             if self.save_flag:
                 save_object_to_file(self.one_hot_encoder_,
                                     self.one_hot_encoder_path,
@@ -197,14 +196,14 @@ class Preprocessor:
             # Load the encoder from the file
             self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
             # Transform the test data
-            df_encoded = self.one_hot_encoder_.transform(input_df[categorical_columns])
+            df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
         # Convert the encoded arrays back to DataFrames
         df_encoded = pd.DataFrame(df_encoded,
-                                  columns=self.one_hot_encoder_.get_feature_names_out(categorical_columns),
+                                  columns=self.one_hot_encoder_.get_feature_names_out(self.categorical_features),
                                   index=input_df.index)
         # Drop the original categorical columns from input_df
-        input_df = input_df.drop(columns=categorical_columns)
+        input_df = input_df.drop(columns=self.categorical_features)
         # Concatenate the encoded DataFrames with the remaining columns
         input_df = pd.concat([input_df, df_encoded], axis=1)
         print(f'input_df shape after one-hot encoding: {input_df.shape}')
@@ -279,15 +278,15 @@ class Preprocessor:
         """Standardizes numerical features"""
         if src_df is None:
             scaler = StandardScaler()
-            scaled = scaler.fit_transform(input_df[['mean_salary', 'company_size']])
+            scaled = scaler.fit_transform(input_df[self.numerical_features])
             if self.save_flag:
                 save_object_to_file(scaler,
                                     self.scaler_path,
                                     self.artifacts_dir_path)
         else:
             scaler = joblib.load(self.scaler_path)
-            scaled = scaler.transform(input_df[['mean_salary', 'company_size']])
-        scaled = pd.DataFrame(scaled, columns=['mean_salary', 'company_size'], index=input_df.index)
-        input_df = pd.concat([scaled, input_df.drop(columns=['mean_salary', 'company_size'])], axis=1)
+            scaled = scaler.transform(input_df[self.numerical_features])
+        scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
+        input_df = pd.concat([scaled, input_df.drop(columns=self.numerical_features)], axis=1)
         print(f'input_df shape after standardizing: {input_df.shape}')
         return input_df

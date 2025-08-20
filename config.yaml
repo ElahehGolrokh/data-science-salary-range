@@ -5,7 +5,6 @@ seed: 42
 url: 'https://www.example.com/jobs'
 pages: 500
 
-target: 'mean_salary'
 
 paths:
   data_dir: 'data'
@@ -32,6 +31,10 @@ preprocessing:
                     'company',  # Not informative
                     'job_title',  # High frequency of dominant category
                     ]
+  target: 'mean_salary'
+  numerical_features: ['company_size']
+  categorical_features: ['seniority_level', 'status', 'location',
+                        'headquarter', 'industry', 'ownership']
 
 training:
   feature_counts: [5, 10, 15, 20, 30, 40]
