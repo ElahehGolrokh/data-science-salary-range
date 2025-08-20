@@ -5,7 +5,7 @@ seed: 42
 url: 'https://www.example.com/jobs'
 pages: 500
 
-target: mean_salary
+target: 'mean_salary'
 
 paths:
   data_dir: 'data'
@@ -26,6 +26,12 @@ preprocessing:
   # Splitter object
   train_size: 0.8
   random_state: 42
+  columns_to_drop: ['min_salary',  # Not informative
+                    'max_salary',  # Not informative
+                    'revenue',  # Large number of missing values
+                    'company',  # Not informative
+                    'job_title',  # High frequency of dominant category
+                    ]
 
 training:
   feature_counts: [5, 10, 15, 20, 30, 40]

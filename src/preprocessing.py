@@ -5,6 +5,7 @@ import os
 import pandas as pd
 
 from collections import Counter
+from omegaconf import OmegaConf
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from .utils import load_dataframe, save_dataframe, save_object_to_file
@@ -16,7 +17,7 @@ class Splitter:
 
     Example
     -------
-    >>> splitter = Splitter("data/df_feature_engineered.csv")
+    >>> splitter = Splitter(config)
     >>> train_df, test_df = splitter.split()
 
     Parameters
@@ -42,20 +43,18 @@ class Splitter:
         Test set after split.
     """
     def __init__(self,
-                 data_dir_path: str,
-                 input_path: str,
-                 train_path: str,
-                 test_path: str,
-                 train_size: float,
-                 random_state: int,
-                 save_flag: bool = True,):
-        self.data_dir_path = data_dir_path
-        self.input_path = input_path
-        self.train_size = train_size
-        self.random_state = random_state
+                 config: OmegaConf,
+                 save_flag: bool):
+        # Store init params
         self.save_flag = save_flag
-        self.train_path = train_path
-        self.test_path = test_path
+
+        # Parameters from config
+        self.input_path = config.paths.feature_engineered
+        self.data_dir_path = config.paths.data_dir
+        self.train_size = config.preprocessing.train_size
+        self.random_state = config.preprocessing.random_state
+        self.train_path = config.paths.train_data
+        self.test_path = config.paths.test_data
 
         # placeholders
         self.train_df_: pd.DataFrame | None = None
@@ -99,21 +98,18 @@ class Splitter:
 
 class Preprocessor:
     def __init__(self,
-                 data_dir_path: str,
-                 artifacts_dir_path: str,
-                 one_hot_encoder_path: str,
-                 mlb_path: str,
-                 scaler_path: str,
-                 columns_to_drop: list=None,
-                 save_objects: bool=True,
-                 ):
-        self.data_dir_path = data_dir_path
-        self.artifacts_dir_path = artifacts_dir_path
-        self.columns_to_drop = columns_to_drop
-        self.one_hot_encoder_path = one_hot_encoder_path
-        self.mlb_path = mlb_path
-        self.scaler_path = scaler_path
-        self.save_objects = save_objects
+                 config: OmegaConf,
+                 save_flag: bool):
+        # Store init params
+        self.save_flag = save_flag
+
+        # Parameters from config
+        self.columns_to_drop = config.preprocessing.columns_to_drop
+        self.data_dir_path = config.paths.data_dir
+        self.artifacts_dir_path = config.paths.artifacts_dir
+        self.one_hot_encoder_path = config.paths.one_hot_encoder
+        self.mlb_path = config.paths.mlb
+        self.scaler_path = config.paths.scaler
 
         # Learned attributes (set after pipeline run)
         self.one_hot_encoder_ = None
@@ -136,13 +132,6 @@ class Preprocessor:
 
     def _drop_useless_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
         """Drops useless features"""
-        if not self.columns_to_drop:
-            self.columns_to_drop = ['min_salary',  # Not informative
-                                    'max_salary',  # Not informative
-                                    'revenue',  # Large number of missing values
-                                    'company',  # Not informative
-                                    'job_title',  # High frequency of dominant category
-                                    ]
         input_df = input_df.drop(columns=self.columns_to_drop)
         return input_df
 
@@ -200,7 +189,7 @@ class Preprocessor:
             self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
             # Fit and transform on the training data
             df_encoded = self.one_hot_encoder_.fit_transform(input_df[categorical_columns])
-            if self.save_objects:
+            if self.save_flag:
                 save_object_to_file(self.one_hot_encoder_,
                                     self.one_hot_encoder_path,
                                     self.artifacts_dir_path)
@@ -269,7 +258,7 @@ class Preprocessor:
         if src_df is None:
             mlb = MultiLabelBinarizer()
             skills_encoded = mlb.fit_transform(input_df['skills'])
-            if self.save_objects:
+            if self.save_flag:
                 save_object_to_file(mlb,
                                     self.mlb_path,
                                     self.artifacts_dir_path)
@@ -291,7 +280,7 @@ class Preprocessor:
         if src_df is None:
             scaler = StandardScaler()
             scaled = scaler.fit_transform(input_df[['mean_salary', 'company_size']])
-            if self.save_objects:
+            if self.save_flag:
                 save_object_to_file(scaler,
                                     self.scaler_path,
                                     self.artifacts_dir_path)
