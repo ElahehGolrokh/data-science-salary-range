@@ -114,6 +114,7 @@ class Preprocessor:
         self.scaler_path = config.paths.scaler
         self.numerical_features = config.preprocessing.numerical_features
         self.categorical_features = config.preprocessing.categorical_features
+        self.target = config.preprocessing.target
 
         # Learned attributes (set after pipeline run)
         self.one_hot_encoder_ = None
@@ -126,7 +127,7 @@ class Preprocessor:
             preprocessed_path: str=None) -> pd.DataFrame:
         input_df = self._drop_useless_features(input_df)
         input_df = self._impute_missing_values(input_df, src_df)
-        input_df = self._remove_outliers(input_df, q=.99)
+        input_df = self._remove_outliers(input_df, src_df, q=.99)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
@@ -165,17 +166,25 @@ class Preprocessor:
 
     def _remove_outliers(self,
                          input_df: pd.DataFrame,
+                         src_df: pd.DataFrame = None,
                          q: float=.99,
                          right_skewed: bool=True) -> pd.DataFrame:
-        """Removes outliers based on the passed quantile"""
-        cols = ['company_size', 'mean_salary']
-        for col in cols:
-            if right_skewed:
-                input_df = input_df[input_df[col] <= input_df[col].quantile(q)]
-            else:
-                input_df = input_df[input_df[col] >= input_df[col].quantile(q)]
+        """
+        Removes outliers from training data based on the passed quantile
 
-        print(f'train_df shape after removing outliers: {input_df.shape}')
+        Note: Since that based on EDA plots we are going to remove outliers
+        from both features & target columns, we consider them all as a single
+        group for outlier removal & create a cols list including all of them.
+        """
+        if src_df is None:
+            cols = self.numerical_features + [self.target]
+            for col in cols:
+                if right_skewed:
+                    input_df = input_df[input_df[col] <= input_df[col].quantile(q)]
+                else:
+                    input_df = input_df[input_df[col] >= input_df[col].quantile(q)]
+
+            print(f'train_df shape after removing outliers: {input_df.shape}')
         return input_df
     
     def _one_hot_encode_categorical(self,
