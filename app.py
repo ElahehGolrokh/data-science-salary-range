@@ -2,6 +2,7 @@ import joblib
 import json
 import gradio as gr
 from huggingface_hub import hf_hub_download
+import numpy as np
 from omegaconf import OmegaConf
 
 # ----------------------------
@@ -10,6 +11,7 @@ from omegaconf import OmegaConf
 config = OmegaConf.load('private_settings.yaml')
 REPO_ID = config.repo_id
 
+numerical_features = config.numerical_features
 # ----------------------------
 # Download artifacts
 # ----------------------------
@@ -56,19 +58,16 @@ def predict(user_inputs):
         X = []
         for feat in selected_features:
             X.append(user_inputs.get(feat, 0))  # default 0 if missing
+            if feat in numerical_features:
+                # scaler issue
+                pass
 
-        # Scale numeric
-        X_scaled = scaler.transform([X])
-
+        X = np.array(X).reshape(1, -1)
         # Predict
-        y_pred = model.predict(X_scaled)
+        print('predincting...')
+        y_pred = model.predict(X)
 
-        # Handle multi-label if applicable
-        if hasattr(mlb, "inverse_transform"):
-            labels = mlb.inverse_transform([y_pred])[0]
-            return f"Predicted Labels: {', '.join(labels)}"
-        else:
-            return f"Prediction: {y_pred[0]}"
+        return f"Prediction: {y_pred[0]}"
 
     except Exception as e:
         return f"⚠️ Error during prediction: {e}"
@@ -91,4 +90,4 @@ demo = gr.Interface(
 )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)

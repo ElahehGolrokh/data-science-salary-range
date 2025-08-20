@@ -6,6 +6,7 @@ url: 'https://www.example.com/jobs'
 pages: 500
 
 target: mean_salary
+numerical_features: ['company_size']
 
 paths:
   data_dir: 'data'
