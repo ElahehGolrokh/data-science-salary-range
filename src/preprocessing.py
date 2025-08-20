@@ -99,9 +99,11 @@ class Splitter:
 class Preprocessor:
     def __init__(self,
                  config: OmegaConf,
-                 save_flag: bool):
+                 save_flag: bool,
+                 transform_target: bool):
         # Store init params
         self.save_flag = save_flag
+        self.transform_target = transform_target
 
         # Parameters from config
         self.columns_to_drop = config.preprocessing.columns_to_drop
