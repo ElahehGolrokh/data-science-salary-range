@@ -124,10 +124,12 @@ class Preprocessor:
     def run(self,
             input_df: pd.DataFrame,
             src_df: pd.DataFrame=None,
+            phase: str=None,
             preprocessed_path: str=None) -> pd.DataFrame:
-        input_df = self._drop_useless_features(input_df)
-        input_df = self._impute_missing_values(input_df, src_df)
-        input_df = self._remove_outliers(input_df, src_df, q=.99)
+        if phase != "inference":
+            input_df = self._drop_useless_features(input_df)
+            input_df = self._impute_missing_values(input_df, src_df)
+            input_df = self._remove_outliers(input_df, src_df, q=.99)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)

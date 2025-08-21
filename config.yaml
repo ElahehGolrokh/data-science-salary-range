@@ -72,3 +72,6 @@ training:
   selector_path: artifacts/final_selected_features.pkl
   save_flag: True
   logging_flag: True
+
+inference:
+  feature_selection: true
