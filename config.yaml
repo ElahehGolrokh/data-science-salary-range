@@ -6,11 +6,6 @@ url: 'https://www.example.com/jobs'
 pages: 500
 
 
-target: 'mean_salary'
-numerical_features: ['company_size']
-categorical_features: ['seniority_level', 'status', 'location',
-                      'headquarter', 'industry', 'ownership']
-
 paths:
   data_dir: 'data'
   raw_data: 'data/raw_df.csv'
@@ -81,3 +76,6 @@ training:
 exporting:
   repo_id: 'your-username/ds-salary'
   api_token: 'your-hf-api-token'
+
+inference:
+  feature_selection: true

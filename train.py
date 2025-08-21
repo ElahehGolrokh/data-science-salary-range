@@ -31,7 +31,7 @@ def main(feature_selection: bool,
          compare_models: bool,
          train_flag: bool):
     loader = DataLoader(config.paths.preprocessed_train,
-                        config.target)
+                        config.preprocessing.target)
     X_train, y_train = loader.load()
     best_model_name_, selected_features_ = None, None
 

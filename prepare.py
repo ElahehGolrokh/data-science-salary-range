@@ -28,9 +28,11 @@ def main(save_flag: bool):
     preprocessor = Preprocessor(config, save_flag)
 
     preprocessor.run(input_df=train_df_,
+                     phase='train',
                      preprocessed_path=PREPROCESSED_TRAIN_PATH)
     preprocessor.run(input_df=test_df_,
                      src_df=train_df_,
+                     phase='evaluation',
                      preprocessed_path=PREPROCESSED_TEST_PATH)
 
 if __name__ == '__main__':
