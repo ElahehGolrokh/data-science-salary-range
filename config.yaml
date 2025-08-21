@@ -5,7 +5,6 @@ seed: 42
 url: 'https://www.example.com/jobs'
 pages: 500
 
-
 paths:
   data_dir: 'data'
   raw_data: 'data/raw_df.csv'
@@ -75,3 +74,4 @@ training:
 
 inference:
   feature_selection: true
+
