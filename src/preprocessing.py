@@ -100,12 +100,16 @@ class Splitter:
 class Preprocessor:
     def __init__(self,
                  config: OmegaConf,
-                 save_flag: bool):
+                 save_flag: bool,
+                 transform_target: bool = None,
+                 one_hot_encoder_: OneHotEncoder = None,
+                 mlb_: MultiLabelBinarizer = None,
+                 scaler_: StandardScaler = None):
         # Store init params
         self.save_flag = save_flag
 
         # Parameters from config
-        self.transform_target = config.preprocessing.transform_target
+        self.transform_target = transform_target if transform_target is not None else config.preprocessing.transform_target
         self.columns_to_drop = config.preprocessing.columns_to_drop
         self.data_dir_path = config.paths.data_dir
         self.artifacts_dir_path = config.paths.artifacts_dir
@@ -117,9 +121,9 @@ class Preprocessor:
         self.target = config.preprocessing.target
 
         # Learned attributes (set after pipeline run)
-        self.one_hot_encoder_ = None
-        self.mlb_ = None
-        self.scaler_ = None
+        self.one_hot_encoder_ = one_hot_encoder_
+        self.mlb_ = mlb_
+        self.scaler_ = scaler_
 
     def run(self,
             input_df: pd.DataFrame,
@@ -130,6 +134,9 @@ class Preprocessor:
             input_df = self._drop_useless_features(input_df)
             input_df = self._impute_missing_values(input_df, src_df)
             input_df = self._remove_outliers(input_df, src_df, q=.99)
+        # 🚨 Ensure target is removed in inference
+        if self.target in input_df.columns and phase == "inference":
+            input_df = input_df.drop(columns=[self.target], axis=1)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
@@ -208,8 +215,9 @@ class Preprocessor:
                                     self.one_hot_encoder_path,
                                     self.artifacts_dir_path)
         else:
-            # Load the encoder from the file
-            self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
+            if self.one_hot_encoder_ is None:
+                # Load the encoder from the file
+                self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
             # Transform the test data
             df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
@@ -270,19 +278,21 @@ class Preprocessor:
                                   src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Fits MultiLabelBinarizer on train, transform both"""
         if src_df is None:
-            mlb = MultiLabelBinarizer()
-            skills_encoded = mlb.fit_transform(input_df['skills'])
+            self.mlb_ = MultiLabelBinarizer()
+            skills_encoded = self.mlb_.fit_transform(input_df['skills'])
             if self.save_flag:
-                save_object_to_file(mlb,
+                save_object_to_file(self.mlb_,
                                     self.mlb_path,
                                     self.artifacts_dir_path)
         else:
-            mlb = joblib.load(self.mlb_path)
-            skills_encoded = mlb.transform(input_df['skills'])
+            if self.mlb_ is None:
+                # Load the encoder from the file
+                self.mlb_ = joblib.load(self.mlb_path)
+            skills_encoded = self.mlb_.transform(input_df['skills'])
 
         # Convert to DataFrames & merge
         skills_df = pd.DataFrame(skills_encoded,
-                                 columns=[f"skill_{s}" for s in mlb.classes_],
+                                 columns=[f"skill_{s}" for s in self.mlb_.classes_],
                                  index=input_df.index)
         input_df = pd.concat([input_df.drop(columns=['skills']), skills_df], axis=1)
         return input_df
@@ -292,15 +302,16 @@ class Preprocessor:
                      src_df: pd.DataFrame = None) -> pd.DataFrame:
         """Standardizes numerical features"""
         if src_df is None:
-            scaler = StandardScaler()
-            scaled = scaler.fit_transform(input_df[self.numerical_features])
+            self.scaler_ = StandardScaler()
+            scaled = self.scaler_.fit_transform(input_df[self.numerical_features])
             if self.save_flag:
-                save_object_to_file(scaler,
+                save_object_to_file(self.scaler_,
                                     self.scaler_path,
                                     self.artifacts_dir_path)
         else:
-            scaler = joblib.load(self.scaler_path)
-            scaled = scaler.transform(input_df[self.numerical_features])
+            if self.scaler_ is None:
+                self.scaler_ = joblib.load(self.scaler_path)
+            scaled = self.scaler_.transform(input_df[self.numerical_features])
         scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
         input_df = pd.concat([scaled, input_df.drop(columns=self.numerical_features)], axis=1)
         print(f'input_df shape after standardizing: {input_df.shape}')

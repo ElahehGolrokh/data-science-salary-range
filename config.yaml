@@ -27,6 +27,20 @@ preprocessing:
   random_state: 42
   # Preprocessor object
   transform_target: true
+  all_features: ['job_title',
+                 'seniority_level',
+                 'status',
+                 'company',
+                 'location',
+                 'headquarter',
+                 'industry',
+                 'ownership',
+                 'company_size',
+                 'revenue',
+                 'skills',
+                 'min_salary',
+                 'max_salary',
+                 'mean_salary']
   columns_to_drop: ['min_salary',  # Not informative
                     'max_salary',  # Not informative
                     'revenue',  # Large number of missing values
