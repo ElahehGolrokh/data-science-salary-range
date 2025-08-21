@@ -25,6 +25,8 @@ preprocessing:
   # Splitter object
   train_size: 0.8
   random_state: 42
+  # Preprocessor object
+  transform_target: true
   columns_to_drop: ['min_salary',  # Not informative
                     'max_salary',  # Not informative
                     'revenue',  # Large number of missing values

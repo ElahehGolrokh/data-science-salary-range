@@ -1,6 +1,7 @@
 import ast
 import joblib
 import logging
+import numpy as np
 import os
 import pandas as pd
 
@@ -99,13 +100,12 @@ class Splitter:
 class Preprocessor:
     def __init__(self,
                  config: OmegaConf,
-                 save_flag: bool,
-                 transform_target: bool):
+                 save_flag: bool):
         # Store init params
         self.save_flag = save_flag
-        self.transform_target = transform_target
 
         # Parameters from config
+        self.transform_target = config.preprocessing.transform_target
         self.columns_to_drop = config.preprocessing.columns_to_drop
         self.data_dir_path = config.paths.data_dir
         self.artifacts_dir_path = config.paths.artifacts_dir
@@ -131,7 +131,9 @@ class Preprocessor:
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
-        if preprocessed_path:
+        if self.transform_target:
+            input_df = self._log_transform_target(input_df)
+        if self.save_flag:
             save_dataframe(input_df, preprocessed_path, self.data_dir_path)
         return input_df
 
@@ -300,4 +302,11 @@ class Preprocessor:
         scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
         input_df = pd.concat([scaled, input_df.drop(columns=self.numerical_features)], axis=1)
         print(f'input_df shape after standardizing: {input_df.shape}')
+        return input_df
+
+    def _log_transform_target(self, input_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies log transformation to the target variable.
+        """
+        input_df[self.target] = np.log1p(input_df[self.target])
         return input_df
