@@ -1,10 +1,12 @@
 import ast
 import joblib
 import logging
+import numpy as np
 import os
 import pandas as pd
 
 from collections import Counter
+from omegaconf import OmegaConf
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from .utils import load_dataframe, save_dataframe, save_object_to_file
@@ -16,7 +18,7 @@ class Splitter:
 
     Example
     -------
-    >>> splitter = Splitter("data/df_feature_engineered.csv")
+    >>> splitter = Splitter(config)
     >>> train_df, test_df = splitter.split()
 
     Parameters
@@ -42,20 +44,18 @@ class Splitter:
         Test set after split.
     """
     def __init__(self,
-                 data_dir_path: str,
-                 input_path: str,
-                 train_path: str,
-                 test_path: str,
-                 train_size: float,
-                 random_state: int,
-                 save_flag: bool = True,):
-        self.data_dir_path = data_dir_path
-        self.input_path = input_path
-        self.train_size = train_size
-        self.random_state = random_state
+                 config: OmegaConf,
+                 save_flag: bool):
+        # Store init params
         self.save_flag = save_flag
-        self.train_path = train_path
-        self.test_path = test_path
+
+        # Parameters from config
+        self.input_path = config.paths.feature_engineered
+        self.data_dir_path = config.paths.data_dir
+        self.train_size = config.preprocessing.train_size
+        self.random_state = config.preprocessing.random_state
+        self.train_path = config.paths.train_data
+        self.test_path = config.paths.test_data
 
         # placeholders
         self.train_df_: pd.DataFrame | None = None
@@ -99,21 +99,22 @@ class Splitter:
 
 class Preprocessor:
     def __init__(self,
-                 data_dir_path: str,
-                 artifacts_dir_path: str,
-                 one_hot_encoder_path: str,
-                 mlb_path: str,
-                 scaler_path: str,
-                 columns_to_drop: list=None,
-                 save_objects: bool=True,
-                 ):
-        self.data_dir_path = data_dir_path
-        self.artifacts_dir_path = artifacts_dir_path
-        self.columns_to_drop = columns_to_drop
-        self.one_hot_encoder_path = one_hot_encoder_path
-        self.mlb_path = mlb_path
-        self.scaler_path = scaler_path
-        self.save_objects = save_objects
+                 config: OmegaConf,
+                 save_flag: bool):
+        # Store init params
+        self.save_flag = save_flag
+
+        # Parameters from config
+        self.transform_target = config.preprocessing.transform_target
+        self.columns_to_drop = config.preprocessing.columns_to_drop
+        self.data_dir_path = config.paths.data_dir
+        self.artifacts_dir_path = config.paths.artifacts_dir
+        self.one_hot_encoder_path = config.paths.one_hot_encoder
+        self.mlb_path = config.paths.mlb
+        self.scaler_path = config.paths.scaler
+        self.numerical_features = config.preprocessing.numerical_features
+        self.categorical_features = config.preprocessing.categorical_features
+        self.target = config.preprocessing.target
 
         # Learned attributes (set after pipeline run)
         self.one_hot_encoder_ = None
@@ -126,23 +127,18 @@ class Preprocessor:
             preprocessed_path: str=None) -> pd.DataFrame:
         input_df = self._drop_useless_features(input_df)
         input_df = self._impute_missing_values(input_df, src_df)
-        input_df = self._remove_outliers(input_df, q=.99)
+        input_df = self._remove_outliers(input_df, src_df, q=.99)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
-        if preprocessed_path:
+        if self.transform_target:
+            input_df = self._log_transform_target(input_df)
+        if self.save_flag:
             save_dataframe(input_df, preprocessed_path, self.data_dir_path)
         return input_df
 
     def _drop_useless_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
         """Drops useless features"""
-        if not self.columns_to_drop:
-            self.columns_to_drop = ['min_salary',  # Not informative
-                                    'max_salary',  # Not informative
-                                    'revenue',  # Large number of missing values
-                                    'company',  # Not informative
-                                    'job_title',  # High frequency of dominant category
-                                    ]
         input_df = input_df.drop(columns=self.columns_to_drop)
         return input_df
 
@@ -172,17 +168,25 @@ class Preprocessor:
 
     def _remove_outliers(self,
                          input_df: pd.DataFrame,
+                         src_df: pd.DataFrame = None,
                          q: float=.99,
                          right_skewed: bool=True) -> pd.DataFrame:
-        """Removes outliers based on the passed quantile"""
-        cols = ['company_size', 'mean_salary']
-        for col in cols:
-            if right_skewed:
-                input_df = input_df[input_df[col] <= input_df[col].quantile(q)]
-            else:
-                input_df = input_df[input_df[col] >= input_df[col].quantile(q)]
+        """
+        Removes outliers from training data based on the passed quantile
 
-        print(f'train_df shape after removing outliers: {input_df.shape}')
+        Note: Since that based on EDA plots we are going to remove outliers
+        from both features & target columns, we consider them all as a single
+        group for outlier removal & create a cols list including all of them.
+        """
+        if src_df is None:
+            cols = self.numerical_features + [self.target]
+            for col in cols:
+                if right_skewed:
+                    input_df = input_df[input_df[col] <= input_df[col].quantile(q)]
+                else:
+                    input_df = input_df[input_df[col] >= input_df[col].quantile(q)]
+
+            print(f'train_df shape after removing outliers: {input_df.shape}')
         return input_df
     
     def _one_hot_encode_categorical(self,
@@ -191,16 +195,13 @@ class Preprocessor:
         """
         One-hot encodes categorical columns
         """
-        categorical_columns = ['seniority_level', 'status', 'location',
-                               'headquarter', 'industry', 'ownership']
-
         if src_df is None:
             # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
             # and handle_unknown='ignore' to handle potential unseen categories in the test set
             self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
             # Fit and transform on the training data
-            df_encoded = self.one_hot_encoder_.fit_transform(input_df[categorical_columns])
-            if self.save_objects:
+            df_encoded = self.one_hot_encoder_.fit_transform(input_df[self.categorical_features])
+            if self.save_flag:
                 save_object_to_file(self.one_hot_encoder_,
                                     self.one_hot_encoder_path,
                                     self.artifacts_dir_path)
@@ -208,14 +209,14 @@ class Preprocessor:
             # Load the encoder from the file
             self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
             # Transform the test data
-            df_encoded = self.one_hot_encoder_.transform(input_df[categorical_columns])
+            df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
         # Convert the encoded arrays back to DataFrames
         df_encoded = pd.DataFrame(df_encoded,
-                                  columns=self.one_hot_encoder_.get_feature_names_out(categorical_columns),
+                                  columns=self.one_hot_encoder_.get_feature_names_out(self.categorical_features),
                                   index=input_df.index)
         # Drop the original categorical columns from input_df
-        input_df = input_df.drop(columns=categorical_columns)
+        input_df = input_df.drop(columns=self.categorical_features)
         # Concatenate the encoded DataFrames with the remaining columns
         input_df = pd.concat([input_df, df_encoded], axis=1)
         print(f'input_df shape after one-hot encoding: {input_df.shape}')
@@ -269,7 +270,7 @@ class Preprocessor:
         if src_df is None:
             mlb = MultiLabelBinarizer()
             skills_encoded = mlb.fit_transform(input_df['skills'])
-            if self.save_objects:
+            if self.save_flag:
                 save_object_to_file(mlb,
                                     self.mlb_path,
                                     self.artifacts_dir_path)
@@ -290,15 +291,22 @@ class Preprocessor:
         """Standardizes numerical features"""
         if src_df is None:
             scaler = StandardScaler()
-            scaled = scaler.fit_transform(input_df[['mean_salary', 'company_size']])
-            if self.save_objects:
+            scaled = scaler.fit_transform(input_df[self.numerical_features])
+            if self.save_flag:
                 save_object_to_file(scaler,
                                     self.scaler_path,
                                     self.artifacts_dir_path)
         else:
             scaler = joblib.load(self.scaler_path)
-            scaled = scaler.transform(input_df[['mean_salary', 'company_size']])
-        scaled = pd.DataFrame(scaled, columns=['mean_salary', 'company_size'], index=input_df.index)
-        input_df = pd.concat([scaled, input_df.drop(columns=['mean_salary', 'company_size'])], axis=1)
+            scaled = scaler.transform(input_df[self.numerical_features])
+        scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
+        input_df = pd.concat([scaled, input_df.drop(columns=self.numerical_features)], axis=1)
         print(f'input_df shape after standardizing: {input_df.shape}')
+        return input_df
+
+    def _log_transform_target(self, input_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies log transformation to the target variable.
+        """
+        input_df[self.target] = np.log1p(input_df[self.target])
         return input_df
