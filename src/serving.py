@@ -198,7 +198,13 @@ class GradioApp:
                                                    src_df=self.src_df,
                                                    columns_to_keep=self.selected_features_)
             result = inference_pipeline.run()
-            return result
+            try:
+                # Round to nearest 1,000
+                rounded = int(round(result, -3))  
+                formatted = f"€{int(rounded):,}"
+                return f"Estimated annual salary: {formatted}"
+            except Exception:
+                return f"Estimated annual salary: €{result}"
 
         except Exception as e:
             return f"⚠️ Error during prediction: {e}"
@@ -228,7 +234,7 @@ class GradioApp:
         app = gr.Interface(
             fn=lambda *args: self._predict(dict(zip(self.features, args))),
             inputs=inputs,
-            outputs="text",
+            outputs=gr.Textbox(label="Predicted Salary (Annual, in €)"),
             title=f"Data Science Salary Predictor",
             description="This app uses machine learning to estimate salaries for data science roles. \
                          Try it out with your own profile!"
