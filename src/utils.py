@@ -6,8 +6,10 @@ from pathlib import Path
 from sklearn.base import RegressorMixin
 
 
-def load_dataframe(file_path: str) -> pd.DataFrame:
+def load_dataframe(file_path: str, dir_path: str= None) -> pd.DataFrame:
     """Loads a DataFrame from a CSV file."""
+    if dir_path is not None:
+        file_path = os.path.join(dir_path, file_path)
     return pd.read_csv(file_path)
 
 
@@ -17,11 +19,12 @@ def save_dataframe(df: pd.DataFrame,
     """Saves a DataFrame to a CSV file."""
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
+    file_path = os.path.join(dir_path, file_path)
     df.to_csv(file_path, index=False)
 
 
 def save_object_to_file(input_object,
-                        file_path: str,
+                        file_name: str,
                         dir_path: str) -> None:
     """Saves the preprocessing and modeling objects to a pickle file."""
     if input_object is None:
@@ -29,6 +32,7 @@ def save_object_to_file(input_object,
                          Run for training data first")
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
+    file_path = os.path.join(dir_path, file_name)
     joblib.dump(input_object, file_path)
     print(f"Object saved to {file_path}")
 

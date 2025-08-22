@@ -50,12 +50,12 @@ class Splitter:
         self.save_flag = save_flag
 
         # Parameters from config
-        self.input_path = config.paths.feature_engineered
-        self.data_dir_path = config.paths.data_dir
+        self.dir_path = config.dirs.data
+        self.input_path = config.files.feature_engineered
         self.train_size = config.preprocessing.train_size
         self.random_state = config.preprocessing.random_state
-        self.train_path = config.paths.train_data
-        self.test_path = config.paths.test_data
+        self.train_path = config.files.train_data
+        self.test_path = config.files.test_data
 
         # placeholders
         self.train_df_: pd.DataFrame | None = None
@@ -74,14 +74,15 @@ class Splitter:
         if not (0 < self.train_size < 1):
             raise ValueError("train_size must be between 0 and 1 (exclusive).")
 
-        if not os.path.exists(self.input_path):
+        if not os.path.exists(os.path.join(self.dir_path, self.input_path)):
             raise FileNotFoundError(f"Input file not found: {self.input_path}")
 
     def split(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Splits the data into train and test sets"""
-        input_df = load_dataframe(self.input_path)
+        input_df = load_dataframe(dir_path=self.dir_path,
+                                  file_path=self.input_path)
         self.train_df_ = input_df.sample(frac=self.train_size,
-                                   random_state=self.random_state)
+                                         random_state=self.random_state)
         self.test_df_ = input_df.drop(self.train_df_.index)
 
         self.logger.info("Train shape: %s, Test shape: %s",
@@ -93,8 +94,8 @@ class Splitter:
     def _save_splits(self) -> None:
         """Saves the train and test splits to disk."""
         self.logger.info("Saving train and test splits to disk.")
-        save_dataframe(self.train_df_, self.train_path, self.data_dir_path)
-        save_dataframe(self.test_df_, self.test_path, self.data_dir_path)
+        save_dataframe(self.train_df_, self.train_path, self.dir_path)
+        save_dataframe(self.test_df_, self.test_path, self.dir_path)
 
 
 class Preprocessor:
@@ -109,13 +110,14 @@ class Preprocessor:
         self.save_flag = save_flag
 
         # Parameters from config
-        self.transform_target = transform_target if transform_target is not None else config.preprocessing.transform_target
+        self.transform_target = transform_target if transform_target is not None \
+            else config.preprocessing.transform_target
         self.columns_to_drop = config.preprocessing.columns_to_drop
-        self.data_dir_path = config.paths.data_dir
-        self.artifacts_dir_path = config.paths.artifacts_dir
-        self.one_hot_encoder_path = config.paths.one_hot_encoder
-        self.mlb_path = config.paths.mlb
-        self.scaler_path = config.paths.scaler
+        self.data_dir_path = config.dirs.data
+        self.artifacts_dir_path = config.dirs.artifacts
+        self.one_hot_encoder_name = config.files.one_hot_encoder
+        self.mlb_name = config.files.mlb
+        self.scaler_name = config.files.scaler
         self.numerical_features = config.preprocessing.numerical_features
         self.categorical_features = config.preprocessing.categorical_features
         self.target = config.preprocessing.target
@@ -212,12 +214,13 @@ class Preprocessor:
             df_encoded = self.one_hot_encoder_.fit_transform(input_df[self.categorical_features])
             if self.save_flag:
                 save_object_to_file(self.one_hot_encoder_,
-                                    self.one_hot_encoder_path,
+                                    self.one_hot_encoder_name,
                                     self.artifacts_dir_path)
         else:
             if self.one_hot_encoder_ is None:
                 # Load the encoder from the file
-                self.one_hot_encoder_ = joblib.load(self.one_hot_encoder_path)
+                self.one_hot_encoder_ = joblib.load(os.path.join(self.artifacts_dir_path,
+                                                                 self.one_hot_encoder_name))
             # Transform the test data
             df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
@@ -282,12 +285,13 @@ class Preprocessor:
             skills_encoded = self.mlb_.fit_transform(input_df['skills'])
             if self.save_flag:
                 save_object_to_file(self.mlb_,
-                                    self.mlb_path,
+                                    self.mlb_name,
                                     self.artifacts_dir_path)
         else:
             if self.mlb_ is None:
                 # Load the encoder from the file
-                self.mlb_ = joblib.load(self.mlb_path)
+                self.mlb_ = joblib.load(os.path.join(self.artifacts_dir_path,
+                                                      self.mlb_name))
             skills_encoded = self.mlb_.transform(input_df['skills'])
 
         # Convert to DataFrames & merge
@@ -306,14 +310,17 @@ class Preprocessor:
             scaled = self.scaler_.fit_transform(input_df[self.numerical_features])
             if self.save_flag:
                 save_object_to_file(self.scaler_,
-                                    self.scaler_path,
+                                    self.scaler_name,
                                     self.artifacts_dir_path)
         else:
             if self.scaler_ is None:
-                self.scaler_ = joblib.load(self.scaler_path)
+                self.scaler_ = joblib.load(os.path.join(self.artifacts_dir_path,
+                                                        self.scaler_name))
             scaled = self.scaler_.transform(input_df[self.numerical_features])
         scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
-        input_df = pd.concat([scaled, input_df.drop(columns=self.numerical_features)], axis=1)
+        input_df = pd.concat([scaled,
+                              input_df.drop(columns=self.numerical_features)],
+                              axis=1)
         print(f'input_df shape after standardizing: {input_df.shape}')
         return input_df
 
