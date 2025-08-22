@@ -229,7 +229,8 @@ class GradioApp:
             fn=lambda *args: self._predict(dict(zip(self.features, args))),
             inputs=inputs,
             outputs="text",
-            title=f"Inference App ({self.best_model_name})",
-            description="Upload new inputs and see predictions from the trained model."
+            title=f"Data Science Salary Predictor",
+            description="This app uses machine learning to estimate salaries for data science roles. \
+                         Try it out with your own profile!"
         )
         return app
