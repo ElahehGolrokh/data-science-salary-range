@@ -227,6 +227,9 @@ class GradioApp:
             elif feat in self.config.preprocessing.categorical_features:
                 # Get unique categories from the source DataFrame
                 categories = self.src_df[feat].dropna().unique().tolist()
+                # remove Remote from locations
+                if 'Remote' in categories:
+                    categories.remove('Remote')
                 inputs.append(gr.Dropdown(choices=categories, label=feat))
             else:
                 inputs.append(gr.Textbox(label=feat,
