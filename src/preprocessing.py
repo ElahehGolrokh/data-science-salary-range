@@ -1,5 +1,4 @@
 import ast
-import joblib
 import logging
 import numpy as np
 import os
@@ -9,7 +8,7 @@ from collections import Counter
 from omegaconf import OmegaConf
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from .utils import load_dataframe, save_dataframe, save_object
+from .utils import load_dataframe, load_object, save_dataframe, save_object
 
 
 class Splitter:
@@ -219,8 +218,8 @@ class Preprocessor:
         else:
             if self.one_hot_encoder_ is None:
                 # Load the encoder from the file
-                self.one_hot_encoder_ = joblib.load(os.path.join(self.artifacts_dir_path,
-                                                                 self.one_hot_encoder_name))
+                self.one_hot_encoder_ = load_object(self.one_hot_encoder_name,
+                                                    self.artifacts_dir_path)
             # Transform the test data
             df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
@@ -290,8 +289,8 @@ class Preprocessor:
         else:
             if self.mlb_ is None:
                 # Load the encoder from the file
-                self.mlb_ = joblib.load(os.path.join(self.artifacts_dir_path,
-                                                      self.mlb_name))
+                self.mlb_ = load_object(self.mlb_name,
+                                        self.artifacts_dir_path)
             skills_encoded = self.mlb_.transform(input_df['skills'])
 
         # Convert to DataFrames & merge
@@ -314,8 +313,8 @@ class Preprocessor:
                                     self.artifacts_dir_path)
         else:
             if self.scaler_ is None:
-                self.scaler_ = joblib.load(os.path.join(self.artifacts_dir_path,
-                                                        self.scaler_name))
+                self.scaler_ = load_object(self.scaler_name,
+                                           self.artifacts_dir_path)
             scaled = self.scaler_.transform(input_df[self.numerical_features])
         scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
         input_df = pd.concat([scaled,
