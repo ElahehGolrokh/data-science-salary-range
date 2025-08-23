@@ -110,12 +110,12 @@ class ModelSelector(BaseModelingPipeline):
             self._refit_rfe()
             if self.save_flag:
                 save_object(self.selected_features_,
-                                    self.selector_name,
+                                    self.selected_features_file,
                                     self.artifacts_dir_path)
         else:
             if self.selected_features_ is None:
                 try:
-                    self.selected_features_ = load_object(self.selector_name,
+                    self.selected_features_ = load_object(self.selected_features_file,
                                                                     dir_path=self.artifacts_dir_path)
                     self.logger.info("Loaded selected features: %s", self.selected_features_)
                 except Exception as e:
@@ -128,12 +128,12 @@ class ModelSelector(BaseModelingPipeline):
             if self.save_flag:
                 # Save only the name of the best model
                 save_text(self.best_model_name_,
-                                  self.best_model_file,
+                                  self.best_model_name_file,
                                   self.artifacts_dir_path)
-                self.logger.info("Saved best model name to %s", self.best_model_file)
+                self.logger.info("Saved best model name to %s", self.best_model_name_file)
         else:
             try:
-                self.best_model_name_ = load_text(self.best_model_file,
+                self.best_model_name_ = load_text(self.best_model_name_file,
                                                             dir_path=self.artifacts_dir_path)
             except Exception as e:
                 raise ValueError("best_model_name_ is None")
@@ -302,7 +302,7 @@ class ModelTrainer(BaseModelingPipeline):
         self.best_model_ = None
 
         # Parameters from config
-        self.model_path = self.config.files.model_path
+        self.final_model_file = self.config.files.final_model
 
     def run(self) -> None:
         """
@@ -310,7 +310,7 @@ class ModelTrainer(BaseModelingPipeline):
         """
         if self.selected_features_ is None:
             try:
-                self.selected_features_ = load_object(self.selector_name,
+                self.selected_features_ = load_object(self.selected_features_file,
                                                                 dir_path=self.artifacts_dir_path)
                 self.logger.info("Loaded selected features: %s", self.selected_features_)
             except Exception as e:
@@ -319,7 +319,7 @@ class ModelTrainer(BaseModelingPipeline):
                                  "selection or give selected_features_ a default list.")
         if self.best_model_name_ is None:
             try:
-                self.best_model_name_ = load_text(self.best_model_file,
+                self.best_model_name_ = load_text(self.best_model_name_file,
                                                             dir_path=self.artifacts_dir_path)
             except Exception as e:
                 raise ValueError("best_model_name_ is None")
@@ -330,9 +330,9 @@ class ModelTrainer(BaseModelingPipeline):
         self._fit()
         if self.save_flag:
             save_object(self.best_model_,
-                                self.model_path,
+                                self.final_model_file,
                                 self.artifacts_dir_path)
-            self.logger.info("Saved best model to %s", self.model_path)
+            self.logger.info("Saved best model to %s", self.final_model_file)
         self.logger.info('Pipeline execution completed successfully.')
 
     def _fit(self) -> None:

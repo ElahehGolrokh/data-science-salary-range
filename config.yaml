@@ -9,26 +9,26 @@ pages: 500
 dirs:
   data: 'data'
   notebooks: 'notebooks'
-  # preprocessing & modeling objects & files
   artifacts: 'artifacts'
 
 files:
-  # all of data files live in data/ directory in this repo
+  # Data files (live in data/ directory)
   raw_data: 'raw_df.csv'
   feature_engineered: 'df_feature_engineered.csv'
   preprocessed_train: 'preprocessed_train_df.csv'
   preprocessed_test: 'preprocessed_test_df.csv'
-  # training & testing data after split
   train_data: 'train_df.csv'
   test_data: 'test_df.csv'
-  # preprocessing objects & files. from here, the files live in artifacts/ in this repo
+  
+  # Preprocessing artifacts (live in artifacts/ directory)
   one_hot_encoder: 'one_hot_encoder.pkl'
   mlb: 'mlb.pkl'
   scaler: 'scaler.pkl'
-  # model artifacts
-  model_path: final_model.pkl
-  best_model_file: best_model_name.txt
-  feature_selector: final_selected_features.pkl
+  
+  # Model artifacts (live in artifacts/ directory)
+  final_model: 'final_model.pkl'              # trained model
+  best_model_name: 'best_model_name.txt'      # name of best model
+  selected_features: 'selected_features.pkl'   # selected features list
 
 preprocessing:
   # Splitter object

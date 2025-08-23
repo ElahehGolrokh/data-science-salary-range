@@ -1,5 +1,4 @@
 import logging
-import os
 import pandas as pd
 
 from abc import ABC, abstractmethod
@@ -81,9 +80,13 @@ class BaseModelingPipeline(ABC):
         self.y_train = y_train
 
         # Parameters from config
-        self.artifacts_dir_path = config.dirs.artifacts
-        self.best_model_file = config.files.best_model_file
-        self.selector_name = config.files.feature_selector
+        self.artifacts_dir_path = self.config.dirs.artifacts
+        self.best_model_name_file = self.config.files.best_model_name
+        self.selected_features_file = self.config.files.selected_features
+
+        # OLD
+        # self.best_model_name_file = config.files.best_model_name_file
+        # self.selected_features_file = config.files.feature_selector
         self.save_flag = config.training.save_flag
         self.logging_flag = config.training.logging_flag
 
