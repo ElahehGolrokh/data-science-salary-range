@@ -23,6 +23,16 @@ def save_dataframe(df: pd.DataFrame,
     df.to_csv(file_path, index=False)
 
 
+def load_object_from_file(file_path: str,
+                          dir_path: str = None) -> None:
+    """Loads a pickled object from a file."""
+    if dir_path is not None:
+        file_path = os.path.join(dir_path, file_path)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"No file found at {file_path}")
+    return joblib.load(file_path)
+
+
 def save_object_to_file(input_object,
                         file_name: str,
                         dir_path: str) -> None:
@@ -37,11 +47,29 @@ def save_object_to_file(input_object,
     print(f"Object saved to {file_path}")
 
 
-def load_object_from_file(file_path: str) -> None:
-    """Loads a pickled object from a file."""
+def load_text_from_file(file_name: str, dir_path: str = None) -> str:
+    """Loads plain text (e.g., model name, config) from a file."""
+    if dir_path is not None:
+        file_path = os.path.join(dir_path, file_name)
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"No file found at {file_path}")
-    return joblib.load(file_path)
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    with open(file_path, "r") as f:
+        content = f.read().strip()
+
+    return content
+
+
+def save_text_to_file(content: str,
+                      file_name: str,
+                      dir_path: str) -> None:
+    """Saves text content to a file."""
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+    file_path = os.path.join(dir_path, file_name)
+    with open(file_path, "w") as f:
+        f.write(content)
+    print(f"Text saved to {file_path}")
 
 
 def build_models_from_config(config_dict: dict,

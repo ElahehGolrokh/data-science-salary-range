@@ -1,5 +1,8 @@
 import pandas as pd
 
+from omegaconf import OmegaConf
+
+from .utils import load_dataframe
 
 class DataLoader:
     """
@@ -8,20 +11,19 @@ class DataLoader:
     Parameters
     ----------
     file_path : str
-        Path to the CSV file containing the dataset.
-    target : str
-        Name of the target column in the dataset.
+        name of the CSV file containing the dataset.
 
     Attributes
     ----------
-    file_path : str
-        Path to the CSV file.
+    dir_path : str
+        path to the directory containing the dataset.
     target : str
         Name of the target column.
     """
-    def __init__(self, file_path: str, target):
+    def __init__(self, config: OmegaConf, file_path: str):
         self.file_path = file_path
-        self.target = target
+        self.dir_path = config.dirs.data
+        self.target = config.preprocessing.target[0]
 
     def load(self):
         """
@@ -34,7 +36,8 @@ class DataLoader:
         y : pandas.Series
             Target variable corresponding to the target column.
         """
-        df = pd.read_csv(self.file_path)
+        df = load_dataframe(file_path=self.file_path,
+                            dir_path=self.dir_path)
         X = df.drop(columns=[self.target], axis=1)
         y = df[self.target]
         return X, y

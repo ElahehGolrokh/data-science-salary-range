@@ -30,8 +30,8 @@ config = OmegaConf.load('config.yaml')
 def main(feature_selection: bool,
          compare_models: bool,
          train_flag: bool):
-    loader = DataLoader(config.paths.preprocessed_train,
-                        config.preprocessing.target)
+    loader = DataLoader(config,
+                        file_path=config.files.preprocessed_train)
     X_train, y_train = loader.load()
     best_model_name_, selected_features_ = None, None
 
@@ -43,6 +43,8 @@ def main(feature_selection: bool,
                                        feature_selection_flag=feature_selection,
                                        compare_models_flag=compare_models)
         best_model_name_, selected_features_ = model_selector.run()
+        print(f'***************** model_selector.best_feature_counts_ : {model_selector.best_feature_counts_}')
+
 
     # Model training
     if train_flag:
@@ -52,7 +54,7 @@ def main(feature_selection: bool,
                                      best_model_name_=best_model_name_,
                                      selected_features_=selected_features_)
         model_trainer.run()
-    print(f'model_selector.best_feature_counts_ : {model_selector.best_feature_counts_}')
+
 
 if __name__ == "__main__":
     main(args.feature_selection,

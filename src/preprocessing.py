@@ -120,7 +120,7 @@ class Preprocessor:
         self.scaler_name = config.files.scaler
         self.numerical_features = config.preprocessing.numerical_features
         self.categorical_features = config.preprocessing.categorical_features
-        self.target = config.preprocessing.target
+        self.target = config.preprocessing.target[0]
 
         # Learned attributes (set after pipeline run)
         self.one_hot_encoder_ = one_hot_encoder_

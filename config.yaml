@@ -26,8 +26,8 @@ files:
   mlb: 'mlb.pkl'
   scaler: 'scaler.pkl'
   # model artifacts
-  model: final_model.pkl
-  best_model_name: best_model_name.txt
+  model_path: final_model.pkl
+  best_model_file: best_model_name.txt
   feature_selector: final_selected_features.pkl
 
 preprocessing:
@@ -56,7 +56,8 @@ preprocessing:
                     'company',  # Not informative
                     'job_title',  # High frequency of dominant category
                     ]
-  target: ['mean_salary']
+  target: ['mean_salary']  # defined so for serving
+  # target: 'mean_salary'
   numerical_features: ['company_size']
   categorical_features: ['seniority_level', 'status', 'location',
                         'headquarter', 'industry', 'ownership']

@@ -1,4 +1,5 @@
 import logging
+import os
 import pandas as pd
 
 from abc import ABC, abstractmethod
@@ -80,10 +81,11 @@ class BaseModelingPipeline(ABC):
         self.y_train = y_train
 
         # Parameters from config
-        self.model_name_path = self.config.training.model_name_path
-        self.selector_path = self.config.training.selector_path
-        self.save_flag = self.config.training.save_flag
-        self.logging_flag = self.config.training.logging_flag
+        self.artifacts_dir_path = config.dirs.artifacts
+        self.best_model_file = config.files.best_model_file
+        self.selector_name = config.files.feature_selector
+        self.save_flag = config.training.save_flag
+        self.logging_flag = config.training.logging_flag
 
         # Learned attributes (set after pipeline run)
         self.final_models_: dict[str, RegressorMixin] = None
