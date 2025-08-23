@@ -56,7 +56,8 @@ class GradioApp:
         self.features = [feat for feat in config.preprocessing.all_features
                         if feat not in config.preprocessing.columns_to_drop
                         and feat not in config.preprocessing.target]
-        self.src_df = load_dataframe(config.paths.train_data)
+        self.src_df = load_dataframe(config.files.train_data,
+                                     config.dirs.data)
 
     def launch(self) -> None:
         """
@@ -84,12 +85,12 @@ class GradioApp:
             local file paths where artifacts are cached.
         """
         artifacts = {
-            "model": (self.config.training.model_path).split('/')[-1],
-            "scaler": (self.config.paths.scaler).split('/')[-1],
-            "mlb": (self.config.paths.mlb).split('/')[-1],
-            "one_hot_encoder": (self.config.paths.one_hot_encoder).split('/')[-1],
-            "features": (self.config.training.selector_path).split('/')[-1],   # which features to use
-            "best_model_name": (self.config.training.model_name_path).split('/')[-1]
+            "model": self.config.files.final_model,
+            "scaler": self.config.files.scaler,
+            "mlb": self.config.files.mlb,
+            "one_hot_encoder": self.config.files.one_hot_encoder,
+            "features": self.config.files.selected_features,   # which features to use
+            "best_model_name": self.config.files.best_model_name
         }
         downloaded = {}
         for key, filename in artifacts.items():
