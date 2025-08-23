@@ -8,9 +8,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.feature_selection import RFE
 
-from .utils import get_default_model, save_object_to_file, \
-                   load_object_from_file, save_text_to_file, \
-                   load_text_from_file
+from .utils import get_default_model, save_object, \
+                   load_object, save_text, \
+                   load_text
 from .base import BaseModelingPipeline, MODEL_MAP
 
 
@@ -109,13 +109,13 @@ class ModelSelector(BaseModelingPipeline):
             self._find_best_feature_counts()
             self._refit_rfe()
             if self.save_flag:
-                save_object_to_file(self.selected_features_,
+                save_object(self.selected_features_,
                                     self.selector_name,
                                     self.artifacts_dir_path)
         else:
             if self.selected_features_ is None:
                 try:
-                    self.selected_features_ = load_object_from_file(self.selector_name,
+                    self.selected_features_ = load_object(self.selector_name,
                                                                     dir_path=self.artifacts_dir_path)
                     self.logger.info("Loaded selected features: %s", self.selected_features_)
                 except Exception as e:
@@ -127,13 +127,13 @@ class ModelSelector(BaseModelingPipeline):
             self._get_best_model()
             if self.save_flag:
                 # Save only the name of the best model
-                save_text_to_file(self.best_model_name_,
+                save_text(self.best_model_name_,
                                   self.best_model_file,
                                   self.artifacts_dir_path)
                 self.logger.info("Saved best model name to %s", self.best_model_file)
         else:
             try:
-                self.best_model_name_ = load_text_from_file(self.best_model_file,
+                self.best_model_name_ = load_text(self.best_model_file,
                                                             dir_path=self.artifacts_dir_path)
             except Exception as e:
                 raise ValueError("best_model_name_ is None")
@@ -310,7 +310,7 @@ class ModelTrainer(BaseModelingPipeline):
         """
         if self.selected_features_ is None:
             try:
-                self.selected_features_ = load_object_from_file(self.selector_name,
+                self.selected_features_ = load_object(self.selector_name,
                                                                 dir_path=self.artifacts_dir_path)
                 self.logger.info("Loaded selected features: %s", self.selected_features_)
             except Exception as e:
@@ -319,7 +319,7 @@ class ModelTrainer(BaseModelingPipeline):
                                  "selection or give selected_features_ a default list.")
         if self.best_model_name_ is None:
             try:
-                self.best_model_name_ = load_text_from_file(self.best_model_file,
+                self.best_model_name_ = load_text(self.best_model_file,
                                                             dir_path=self.artifacts_dir_path)
             except Exception as e:
                 raise ValueError("best_model_name_ is None")
@@ -329,7 +329,7 @@ class ModelTrainer(BaseModelingPipeline):
         # Final fitting step
         self._fit()
         if self.save_flag:
-            save_object_to_file(self.best_model_,
+            save_object(self.best_model_,
                                 self.model_path,
                                 self.artifacts_dir_path)
             self.logger.info("Saved best model to %s", self.model_path)

@@ -9,7 +9,7 @@ from collections import Counter
 from omegaconf import OmegaConf
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from .utils import load_dataframe, save_dataframe, save_object_to_file
+from .utils import load_dataframe, save_dataframe, save_object
 
 
 class Splitter:
@@ -213,7 +213,7 @@ class Preprocessor:
             # Fit and transform on the training data
             df_encoded = self.one_hot_encoder_.fit_transform(input_df[self.categorical_features])
             if self.save_flag:
-                save_object_to_file(self.one_hot_encoder_,
+                save_object(self.one_hot_encoder_,
                                     self.one_hot_encoder_name,
                                     self.artifacts_dir_path)
         else:
@@ -284,7 +284,7 @@ class Preprocessor:
             self.mlb_ = MultiLabelBinarizer()
             skills_encoded = self.mlb_.fit_transform(input_df['skills'])
             if self.save_flag:
-                save_object_to_file(self.mlb_,
+                save_object(self.mlb_,
                                     self.mlb_name,
                                     self.artifacts_dir_path)
         else:
@@ -309,7 +309,7 @@ class Preprocessor:
             self.scaler_ = StandardScaler()
             scaled = self.scaler_.fit_transform(input_df[self.numerical_features])
             if self.save_flag:
-                save_object_to_file(self.scaler_,
+                save_object(self.scaler_,
                                     self.scaler_name,
                                     self.artifacts_dir_path)
         else:

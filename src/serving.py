@@ -4,7 +4,7 @@ import numpy as np
 from omegaconf import OmegaConf
 import pandas as pd
 
-from .utils import load_object_from_file, load_dataframe
+from .utils import load_object, load_dataframe
 from .inference import InferencePipeline
 from .preprocessing import Preprocessor
 
@@ -108,11 +108,11 @@ class GradioApp:
         selected features, and best model name.
         """
         downloaded = self._download_artifacts()
-        self.model_ = load_object_from_file(downloaded["model"])
-        self.scaler_ = load_object_from_file(downloaded["scaler"])
-        self.mlb_ = load_object_from_file(downloaded["mlb"])
-        self.one_hot_encoder_ = load_object_from_file(downloaded["one_hot_encoder"])
-        self.selected_features_ = load_object_from_file(downloaded["features"])
+        self.model_ = load_object(downloaded["model"])
+        self.scaler_ = load_object(downloaded["scaler"])
+        self.mlb_ = load_object(downloaded["mlb"])
+        self.one_hot_encoder_ = load_object(downloaded["one_hot_encoder"])
+        self.selected_features_ = load_object(downloaded["features"])
 
         with open(downloaded["best_model_name"], "r") as f:
             self.best_model_name = f.read().strip()

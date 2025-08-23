@@ -4,7 +4,7 @@ import pandas as pd
 from omegaconf import OmegaConf
 from sklearn.base import RegressorMixin
 
-from .utils import load_object_from_file
+from .utils import load_object
 
 
 class InferencePipeline:
@@ -41,11 +41,11 @@ class InferencePipeline:
 
     def _select_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Selects features from the preprocessed DataFrame."""
-        # columns_to_keep = load_object_from_file(self.config.training.selector_path)
+        # columns_to_keep = load_object(self.config.training.selector_path)
         # df = df[columns_to_keep]
         # print(f"✅ Selected features: {columns_to_keep}")
         if self.columns_to_keep is None:
-            self.columns_to_keep = load_object_from_file(self.config.training.selector_path)
+            self.columns_to_keep = load_object(self.config.training.selector_path)
         # Reindex ensures missing cols are added with 0, extra cols are dropped
         df = df.reindex(columns=self.columns_to_keep, fill_value=0)
         print(f"✅ Selected and aligned features ({len(self.columns_to_keep)} features)")

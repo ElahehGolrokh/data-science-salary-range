@@ -23,7 +23,7 @@ def save_dataframe(df: pd.DataFrame,
     df.to_csv(file_path, index=False)
 
 
-def load_object_from_file(file_path: str,
+def load_object(file_path: str,
                           dir_path: str = None) -> None:
     """Loads a pickled object from a file."""
     if dir_path is not None:
@@ -33,7 +33,7 @@ def load_object_from_file(file_path: str,
     return joblib.load(file_path)
 
 
-def save_object_to_file(input_object,
+def save_object(input_object,
                         file_name: str,
                         dir_path: str) -> None:
     """Saves the preprocessing and modeling objects to a pickle file."""
@@ -47,7 +47,7 @@ def save_object_to_file(input_object,
     print(f"Object saved to {file_path}")
 
 
-def load_text_from_file(file_name: str, dir_path: str = None) -> str:
+def load_text(file_name: str, dir_path: str = None) -> str:
     """Loads plain text (e.g., model name, config) from a file."""
     if dir_path is not None:
         file_path = os.path.join(dir_path, file_name)
@@ -60,7 +60,7 @@ def load_text_from_file(file_name: str, dir_path: str = None) -> str:
     return content
 
 
-def save_text_to_file(content: str,
+def save_text(content: str,
                       file_name: str,
                       dir_path: str) -> None:
     """Saves text content to a file."""
