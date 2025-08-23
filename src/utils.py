@@ -24,7 +24,7 @@ def save_dataframe(df: pd.DataFrame,
 
 
 def load_object(file_path: str,
-                          dir_path: str = None) -> None:
+                dir_path: str = None) -> None:
     """Loads a pickled object from a file."""
     if dir_path is not None:
         file_path = os.path.join(dir_path, file_path)
