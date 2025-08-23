@@ -31,7 +31,7 @@ class Exporter:
                  repo_id: str,
                  api_token: str):
         self.repo_id = repo_id
-        self.artifacts_dir = Path(config.paths.artifacts_dir)
+        self.artifacts_dir = Path(config.dirs.artifacts)
         login(api_token)
 
     def _read_artifacts(self) -> list:

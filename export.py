@@ -1,6 +1,5 @@
 import argparse
 from omegaconf import OmegaConf
-from pathlib import Path
 
 from src.exporting import Exporter
 
@@ -16,7 +15,7 @@ parser.add_argument("--api_token", type=str, help="Hugging Face API token")
 
 args = parser.parse_args()
 
-config = OmegaConf.load('config.yaml')
+config = OmegaConf.load('private_settings.yaml')
 REPO_ID = args.repo_id if args.repo_id else config.exporting.repo_id
 API_TOKEN = args.api_token if args.api_token else config.exporting.api_token
 
