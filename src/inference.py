@@ -13,12 +13,14 @@ class InferencePipeline:
                  model: RegressorMixin,
                  input_df: pd.DataFrame,
                  src_df: pd.DataFrame,
+                 transform_target: bool = None,
                  columns_to_keep: list[str] = None):
         self.config = config
         self.model = model
         self.feature_selection = config.inference.feature_selection
         self.input_df = input_df
         self.src_df = src_df
+        self.transform_target = transform_target if transform_target is not None else config.preprocessing.transform_target
         self.columns_to_keep = columns_to_keep
 
     def run(self) -> pd.DataFrame:
@@ -30,9 +32,10 @@ class InferencePipeline:
         predictions = self.model.predict(self.input_df)
 
         # Post-process the predictions
-        result = self._postprocess(predictions)
+        if self.transform_target:
+            predictions = self._postprocess(predictions)
 
-        return np.round(result)
+        return np.round(predictions)
 
     def _preprocess(self) -> pd.DataFrame:
         """Preprocesses the input DataFrame."""
@@ -52,7 +55,6 @@ class InferencePipeline:
     def _postprocess(self, predictions: np.ndarray) -> float:
         """Post-processes the predictions."""
         # Implement postprocessing steps (e.g., inverse scaling)
-        if self.config.preprocessing.transform_target:
-            predictions = np.expm1(predictions)
+        predictions = np.expm1(predictions)
 
         return float(predictions)
