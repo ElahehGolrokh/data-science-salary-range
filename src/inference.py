@@ -33,7 +33,7 @@ class InferencePipeline:
 
         # Post-process the predictions
         if self.transform_target:
-            predictions = self.postprocess(predictions)
+            predictions = self._postprocess(predictions)
 
         return np.round(predictions)
 
@@ -52,9 +52,9 @@ class InferencePipeline:
         print(f"✅ Selected and aligned features ({len(self.columns_to_keep)} features)")
         return df
 
-    def postprocess(self, input_vector: np.ndarray) -> float:
-        """Post-processes the input_vector."""
+    def _postprocess(self, predictions: np.ndarray) -> float:
+        """Post-processes the predictions."""
         # Implement postprocessing steps (e.g., inverse scaling)
-        input_vector = np.expm1(input_vector).astype(float)
+        predictions = np.expm1(predictions).astype(float)
 
-        return input_vector
+        return predictions

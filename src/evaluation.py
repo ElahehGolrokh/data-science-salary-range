@@ -18,20 +18,19 @@ from .inference import InferencePipeline
 
 warnings.filterwarnings('ignore')
 
+
 class Evaluator:
     def __init__(self,
                  config: OmegaConf,
                  X_test: pd.DataFrame,
                  y_test: pd.DataFrame,
                  src_df: pd.DataFrame,
-                 save_results: bool = True,
-                 transform_target: bool = None):
+                 save_results: bool = True):
         self.config = config
         self.X_test = X_test
         self.y_test = y_test
         self.src_df = src_df
         self.save_results = save_results
-        self.transform_target = transform_target if transform_target is not None else config.preprocessing.transform_target
         self.model = None
         self.predictions_df_ = None
         self.metrics_ = {}
@@ -82,9 +81,7 @@ class Evaluator:
         print(f'*****************y_pred shape: {y_pred.shape}')
 
         y_test_processed = self.y_test.copy()
-        if self.config.preprocessing.transform_target:
-            y_test_processed = inference_pipeline.postprocess(y_test_processed)
-        
+
         # Handle both Series and DataFrame for y_test
         if isinstance(y_test_processed, pd.DataFrame):
             actual_values = y_test_processed.iloc[:, 0].values

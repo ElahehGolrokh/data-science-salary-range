@@ -1,11 +1,27 @@
+import argparse
 from omegaconf import OmegaConf
 
 from src.inference import InferencePipeline
 from src.preprocessing import Preprocessor
 from src.utils import load_dataframe, load_object
 
+parser = argparse.ArgumentParser(
+    prog='train.py',
+    description='Modeling pipeline on the preprocessed data',
+    epilog=f'Thanks for using.'
+)
 
-def main():
+parser.add_argument('-s', '--transform_target',
+                    action='store_true',
+                    help='Whether to transform the target variable')
+args = parser.parse_args()
+
+config = OmegaConf.load('config.yaml')
+
+transform_target = args.transform_target if args.transform_target is not None \
+            else config.preprocessing.transform_target
+
+def main(transform_target: bool):
     """Run inference on a single example."""
     config = OmegaConf.load('config.yaml')
     model = load_object(config.files.final_model,
@@ -17,11 +33,11 @@ def main():
     src_df = load_dataframe(config.files.train_data,
                             config.dirs.data)
     preprocessor = Preprocessor(config,
-                                save_flag=False,
-                                transform_target=False)
+                                save_flag=False)
     preprocessed_df = preprocessor.run(input_df=input_df,
                                        src_df=src_df,
-                                       phase='inference')
+                                       phase='inference',
+                                       transform_target=transform_target)
     inference_pipeline = InferencePipeline(config,
                                            model,
                                            input_df=preprocessed_df,
@@ -31,4 +47,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(transform_target)

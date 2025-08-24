@@ -166,13 +166,13 @@ class GradioApp:
             print('X = {}'.format(X))
             preprocessor = Preprocessor(self.config,
                                         save_flag=False,
-                                        transform_target=False,
                                         one_hot_encoder_=self.one_hot_encoder_,
                                         mlb_=self.mlb_,
                                         scaler_=self.scaler_)
             preprocessed_df = preprocessor.run(input_df=X,
                                                src_df=self.src_df,
-                                               phase='inference')
+                                               phase='inference',
+                                               transform_target=False)
             return preprocessed_df
         except:
             return "⚠️ Error during preprocessing"

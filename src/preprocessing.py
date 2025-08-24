@@ -101,7 +101,6 @@ class Preprocessor:
     def __init__(self,
                  config: OmegaConf,
                  save_flag: bool,
-                 transform_target: bool = None,
                  one_hot_encoder_: OneHotEncoder = None,
                  mlb_: MultiLabelBinarizer = None,
                  scaler_: StandardScaler = None):
@@ -109,8 +108,6 @@ class Preprocessor:
         self.save_flag = save_flag
 
         # Parameters from config
-        self.transform_target = transform_target if transform_target is not None \
-            else config.preprocessing.transform_target
         self.columns_to_drop = config.preprocessing.columns_to_drop
         self.data_dir_path = config.dirs.data
         self.artifacts_dir_path = config.dirs.artifacts
@@ -130,7 +127,8 @@ class Preprocessor:
             input_df: pd.DataFrame,
             src_df: pd.DataFrame=None,
             phase: str=None,
-            preprocessed_path: str=None) -> pd.DataFrame:
+            preprocessed_path: str=None,
+            transform_target: bool = None) -> pd.DataFrame:
         if phase != "inference":
             input_df = self._drop_useless_features(input_df)
             input_df = self._impute_missing_values(input_df, src_df)
@@ -141,7 +139,7 @@ class Preprocessor:
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
         input_df = self._standardize(input_df, src_df)
-        if self.transform_target:
+        if transform_target:
             input_df = self._log_transform_target(input_df)
         if self.save_flag:
             save_dataframe(input_df, preprocessed_path, self.data_dir_path)

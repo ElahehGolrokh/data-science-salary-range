@@ -28,13 +28,17 @@ def main(save_flag: bool):
 
     preprocessor = Preprocessor(config, save_flag)
 
+    # preprocess train_df with transform_target=True
     preprocessor.run(input_df=train_df_,
                      phase='train',
-                     preprocessed_path=PREPROCESSED_TRAIN_Name)
+                     preprocessed_path=PREPROCESSED_TRAIN_Name,
+                     transform_target=True)
+    # preprocess test_df with transform_target=False
     preprocessor.run(input_df=test_df_,
                      src_df=train_df_,
                      phase='evaluation',
-                     preprocessed_path=PREPROCESSED_TEST_Name)
+                     preprocessed_path=PREPROCESSED_TEST_Name,
+                     transform_target=False)
 
 if __name__ == '__main__':
     main(args.save_flag)
