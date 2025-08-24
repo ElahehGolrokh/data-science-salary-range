@@ -13,7 +13,8 @@ from omegaconf import OmegaConf
 import warnings
 
 
-from .utils import load_object, save_dataframe
+from .utils import load_object, save_dataframe, save_text
+from .inference import InferencePipeline
 
 warnings.filterwarnings('ignore')
 
@@ -22,11 +23,15 @@ class Evaluator:
                  config: OmegaConf,
                  X_test: pd.DataFrame,
                  y_test: pd.DataFrame,
-                 save_results: bool = True):
+                 src_df: pd.DataFrame,
+                 save_results: bool = True,
+                 transform_target: bool = None):
         self.config = config
         self.X_test = X_test
         self.y_test = y_test
+        self.src_df = src_df
         self.save_results = save_results
+        self.transform_target = transform_target if transform_target is not None else config.preprocessing.transform_target
         self.model = None
         self.predictions_df_ = None
         self.metrics_ = {}
@@ -51,7 +56,7 @@ class Evaluator:
         
         # Calculate metrics
         self.metrics_ = self._calculate_metrics()
-        
+
         # Generate evaluation report
         self.report_ = self._generate_report()
         
@@ -61,30 +66,38 @@ class Evaluator:
         if self.save_results:
             self._save_results()
         
-        return {
-            'metrics': self.metrics_,
-            'predictions': self.predictions_df_,
-            'report': report
-        }
+        # return {
+        #     'metrics': self.metrics_,
+        #     'predictions': self.predictions_df_,
+        #     'report': report
+        # }
 
     def _predict(self) -> pd.DataFrame:
         """Generate predictions and create comparison dataframe"""
-        y_pred = self.model.predict(self.X_test)
+        inference_pipeline = InferencePipeline(self.config,
+                                               self.model,
+                                               input_df=self.X_test,
+                                               src_df=self.src_df)
+        y_pred = inference_pipeline.run()
+        print(f'*****************y_pred shape: {y_pred.shape}')
+
+        y_test_processed = self.y_test.copy()
+        if self.config.preprocessing.transform_target:
+            y_test_processed = inference_pipeline.postprocess(y_test_processed)
         
         # Handle both Series and DataFrame for y_test
-        if isinstance(self.y_test, pd.DataFrame):
-            actual_values = self.y_test.iloc[:, 0].values
+        if isinstance(y_test_processed, pd.DataFrame):
+            actual_values = y_test_processed.iloc[:, 0].values
         else:
-            actual_values = self.y_test.values
-        
+            actual_values = y_test_processed.values
+
         predictions_df = pd.DataFrame({
             "Actual": actual_values,
             "Predicted": y_pred,
             "Residual": actual_values - y_pred,
             "Absolute_Error": np.abs(actual_values - y_pred),
             "Percentage_Error": np.abs((actual_values - y_pred) / actual_values) * 100
-        })
-        
+        })        
         return predictions_df
     
     def _calculate_metrics(self) -> dict[str, float]:
@@ -222,9 +235,9 @@ class Evaluator:
     def _save_results(self):
         """Save evaluation results to files"""
         # Save report
-        save_dataframe(self.report_,
-                       self.config.files.evaluation_report,
-                       self.config.dirs.logs)
+        save_text(self.report_,
+                  self.config.files.evaluation_report,
+                  self.config.dirs.logs)
         # Save metrics
         metrics_df = pd.DataFrame([self.metrics_])
         save_dataframe(metrics_df,
@@ -247,6 +260,7 @@ class Evaluator:
     def _get_feature_importance(self, top_n: int = 10):
         """Get feature importance if model supports it"""
         if hasattr(self.model, 'feature_importances_'):
+            print(f'self.X_test.shape: {self.X_test.shape}')
             importance_df = pd.DataFrame({
                 'feature': self.X_test.columns,
                 'importance': self.model.feature_importances_
@@ -270,7 +284,7 @@ class Evaluator:
         print("="*50)
         print("MODEL EVALUATION SUMMARY")
         print("="*50)
-        # print(f"R² Score: {self.metrics_['r2_score']:.4f}")
+        print(f"R² Score: {self.metrics_['r2_score']:.4f}")
         print(f"RMSE: ${self.metrics_['rmse']:,.2f}")
         print(f"MAE: ${self.metrics_['mae']:,.2f}")
         print(f"MAPE: {self.metrics_['mape']:.2f}%")

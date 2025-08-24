@@ -1,5 +1,6 @@
 private_files/
 venv/
+logs/
 src/__pycache__
 artifacts/
 flagged/
