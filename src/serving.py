@@ -199,13 +199,15 @@ class GradioApp:
                                                    src_df=self.src_df,
                                                    columns_to_keep=self.selected_features_)
             result = inference_pipeline.run()
+            print(f"Raw prediction result: {result}")
             try:
                 # Round to nearest 1,000
-                rounded = int(round(result, -3))  
-                formatted = f"€{int(rounded):,}"
+                rounded = int(round(result[0], -3))  
+                formatted = f"€ {int(rounded):,}"
+                print(f"Formatted prediction result: {formatted}")
                 return f"Estimated annual salary: {formatted}"
             except Exception:
-                return f"Estimated annual salary: €{result}"
+                return f"Estimated annual salary: € {result}"
 
         except Exception as e:
             return f"⚠️ Error during prediction: {e}"
