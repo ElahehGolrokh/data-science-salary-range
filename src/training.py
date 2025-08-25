@@ -180,7 +180,12 @@ class ModelSelector(BaseModelingPipeline):
                   verbose=0)
         rfe.fit(self.X_train, self.y_train)
         selected_features_ = self.X_train.columns[rfe.support_].tolist()
-        return selected_features_
+        # Force certain features to be included
+        force_to_keep = ['seniority_level_lead',
+                         'seniority_level_midlevel',
+                         'seniority_level_senior']
+        selected_features_ = set(force_to_keep + selected_features_)
+        return list(selected_features_)
 
     # model selection
     def _compare_models(self) -> pd.DataFrame:
@@ -338,7 +343,7 @@ class ModelTrainer(BaseModelingPipeline):
                         self.artifacts_dir_path)
             self.logger.info("Saved best model to %s", self.final_model_file)
         self.logger.info('Pipeline execution completed successfully with %s features. \n' \
-                         'feature_selection: %s', len(self.selected_features_), self.feature_selection)
+                         'selected_features: %s', len(self.selected_features_), self.selected_features_)
 
     def _fit(self) -> None:
         """
