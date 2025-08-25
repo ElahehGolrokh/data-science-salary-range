@@ -78,8 +78,6 @@ class Evaluator:
                                                input_df=self.X_test,
                                                src_df=self.src_df)
         y_pred = inference_pipeline.run()
-        print(f'*****************y_pred shape: {y_pred.shape}')
-
         y_test_processed = self.y_test.copy()
 
         # Handle both Series and DataFrame for y_test
@@ -193,7 +191,7 @@ class Evaluator:
         
         # 1. Actual vs Predicted scatter plot
         axes[0, 0].scatter(self.predictions_df_["Actual"], self.predictions_df_["Predicted"], 
-                          alpha=0.6, color='blue')
+                          alpha=0.4, color='blue')
         min_val = min(self.predictions_df_["Actual"].min(), self.predictions_df_["Predicted"].min())
         max_val = max(self.predictions_df_["Actual"].max(), self.predictions_df_["Predicted"].max())
         axes[0, 0].plot([min_val, max_val], [min_val, max_val], 'r--', lw=2)
@@ -204,7 +202,7 @@ class Evaluator:
         
         # 2. Residuals plot
         axes[0, 1].scatter(self.predictions_df_["Predicted"], self.predictions_df_["Residual"], 
-                          alpha=0.6, color='green')
+                          alpha=0.4, color='green')
         axes[0, 1].axhline(y=0, color='r', linestyle='--')
         axes[0, 1].set_xlabel('Predicted Salary')
         axes[0, 1].set_ylabel('Residuals')
@@ -228,6 +226,7 @@ class Evaluator:
         
         plt.tight_layout()
         # plt.show()
+        return fig
     
     def _save_results(self):
         """Save evaluation results to files"""

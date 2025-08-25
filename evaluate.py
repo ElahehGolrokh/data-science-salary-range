@@ -36,8 +36,8 @@ def main(save_results: bool):
     evaluator.print_summary()
 
     # Get feature importance (if supported)
-    # feature_importance = evaluator._get_feature_importance()
-    # print(f'Feature Importance: {feature_importance}')
+    feature_importance = evaluator._get_feature_importance()
+    print(f'Feature Importance: {feature_importance}')
     # Example usage:
     """
     # Initialize evaluator
