@@ -1,4 +1,5 @@
 import joblib
+import numpy as np
 import os
 import pandas as pd
 
@@ -95,3 +96,23 @@ def get_root() -> Path:
     while not (root / ".git").exists() and root != root.parent:
         root = root.parent
     return root
+
+
+def select_features(df: pd.DataFrame,
+                    columns_to_keep: list[str] = None) -> pd.DataFrame:
+    """Selects features from the preprocessed input DataFrame."""
+    # Reindex ensures missing cols are added with 0, extra cols are dropped
+    df = df.reindex(columns=columns_to_keep, fill_value=0)
+    return df
+
+
+def postprocess_target(input_vector: np.ndarray) -> float:
+    """
+    Implements postprocessing of the input_vector. During training
+    log-transformation might be applied. If that was the case, we need to
+    apply the inverse transformation here.
+    """
+    # Implement postprocessing steps (e.g., inverse scaling)
+    input_vector = np.expm1(input_vector).astype(float)
+
+    return input_vector

@@ -4,7 +4,7 @@ import pandas as pd
 from omegaconf import OmegaConf
 from sklearn.base import RegressorMixin
 
-from .utils import load_object
+from .utils import load_object, select_features, postprocess_target
 
 
 class InferencePipeline:
@@ -26,35 +26,22 @@ class InferencePipeline:
     def run(self) -> pd.DataFrame:
         """Runs the inference pipeline on the input DataFrame."""
         # Preprocess the input data
-        self._preprocess()
+        if self.feature_selection:
+            self._get_columns_to_keep()
+            self.input_df = select_features(self.input_df, self.columns_to_keep)
 
         # Make predictions
         predictions = self.model.predict(self.input_df)
 
         # Post-process the predictions
         if self.transform_target:
-            predictions = self._postprocess(predictions)
+            predictions = postprocess_target(predictions)
 
         return np.round(predictions)
 
-    def _preprocess(self) -> pd.DataFrame:
-        """Preprocesses the input DataFrame."""
-        if self.feature_selection:
-            self.input_df = self._select_features(self.input_df)
-
-    def _select_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Selects features from the preprocessed DataFrame."""
+    def _get_columns_to_keep(self):
         if self.columns_to_keep is None:
-            self.columns_to_keep = load_object(self.config.files.selected_features,
-                                               self.config.dirs.artifacts)
-        # Reindex ensures missing cols are added with 0, extra cols are dropped
-        df = df.reindex(columns=self.columns_to_keep, fill_value=0)
-        print(f"✅ Selected and aligned features ({len(self.columns_to_keep)} features)")
-        return df
-
-    def _postprocess(self, predictions: np.ndarray) -> float:
-        """Post-processes the predictions."""
-        # Implement postprocessing steps (e.g., inverse scaling)
-        predictions = np.expm1(predictions).astype(float)
-
-        return predictions
+            self.columns_to_keep = load_object(
+                self.config.files.selected_features,
+                self.config.dirs.artifacts
+            )
