@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(
     epilog=f'Thanks for using.'
 )
 
-parser.add_argument('-s', '--transform_target',
+parser.add_argument('-t', '--transform_target',
                     action='store_true',
                     help='Whether to transform the target variable')
 args = parser.parse_args()

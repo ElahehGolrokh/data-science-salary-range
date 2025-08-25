@@ -296,7 +296,7 @@ class Evaluator:
                 columns_to_keep = load_object(self.config.files.selected_features,
                                               self.config.dirs.artifacts)
                 self.X_test = select_features(self.X_test, columns_to_keep)
-            print(f'self.X_test.shape: {self.X_test.shape}')
+            print(f'-------------------self.X_test.shape: {self.X_test.shape}')
             importance_df = pd.DataFrame({
                 'feature': self.X_test.columns,
                 'importance': self.model.feature_importances_
