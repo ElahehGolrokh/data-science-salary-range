@@ -16,12 +16,16 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-s', '--save',
                     action='store_true',
                     help='Whether to save evaluation results')
+parser.add_argument('-np', '--name_prefix',
+                    type=str,
+                    help='Prefix for saved evaluation result files')
 args = parser.parse_args()
 
 config = OmegaConf.load('config.yaml')
 
 
-def main(save_results: bool):
+def main(save_results: bool,
+         name_prefix: str = None):
     loader = DataLoader(config,
                         file_path=config.files.preprocessed_test)
     X_test, y_test = loader.load()
@@ -31,10 +35,12 @@ def main(save_results: bool):
                           X_test,
                           y_test,
                           src_df,
-                          save_results)
+                          save_results,
+                          name_prefix)
     evaluator.run()
     evaluator.print_summary()
 
 
 if __name__ == "__main__":
-    main(args.save)
+    main(args.save,
+         args.name_prefix)

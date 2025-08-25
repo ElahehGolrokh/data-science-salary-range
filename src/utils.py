@@ -16,11 +16,15 @@ def load_dataframe(file_path: str, dir_path: str= None) -> pd.DataFrame:
 
 def save_dataframe(df: pd.DataFrame,
                    file_path: str,
-                   dir_path: str) -> None:
+                   dir_path: str,
+                   name_prefix: str = None) -> None:
     """Saves a DataFrame to a CSV file."""
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
-    file_path = os.path.join(dir_path, file_path)
+    if name_prefix:
+        file_path = os.path.join(dir_path, f"{name_prefix}_{file_path}")
+    else:
+        file_path = os.path.join(dir_path, file_path)
     df.to_csv(file_path, index=False)
 
 
@@ -62,12 +66,16 @@ def load_text(file_name: str, dir_path: str = None) -> str:
 
 
 def save_text(content: str,
-                      file_name: str,
-                      dir_path: str) -> None:
+              file_name: str,
+              dir_path: str,
+              name_prefix: str = None) -> None:
     """Saves text content to a file."""
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
-    file_path = os.path.join(dir_path, file_name)
+    if name_prefix:
+        file_path = os.path.join(dir_path, f"{name_prefix}_{file_name}")
+    else:
+        file_path = os.path.join(dir_path, file_name)
     with open(file_path, "w") as f:
         f.write(content)
     print(f"Text saved to {file_path}")

@@ -50,13 +50,15 @@ class Evaluator:
                  X_test: pd.DataFrame,
                  y_test: pd.DataFrame,
                  src_df: pd.DataFrame,
-                 save_results: bool = True):
+                 save_results: bool = True,
+                 name_prefix: str = None):
         self.config = config
         self.feature_selection = config.inference.feature_selection
         self.X_test = X_test
         self.y_test = y_test
         self.src_df = src_df
         self.save_results = save_results
+        self.name_prefix = name_prefix
         self.model = None
         self.predictions_df_ = None
         self.metrics_ = {}
@@ -262,17 +264,20 @@ class Evaluator:
         # Save report
         save_text(self.report_,
                   self.config.files.evaluation_report,
-                  self.config.dirs.logs)
+                  self.config.dirs.logs,
+                  self.name_prefix)
         # Save metrics
         metrics_df = pd.DataFrame([self.metrics_])
         save_dataframe(metrics_df,
                        self.config.files.evaluation_metrics,
-                       self.config.dirs.logs)
+                       self.config.dirs.logs,
+                       self.name_prefix)
             
         # Save predictions
         save_dataframe(self.predictions_df_,
                        self.config.files.predictions,
-                       self.config.dirs.logs)
+                       self.config.dirs.logs,
+                       self.name_prefix)
 
         # Save evaluation plots
         if self.evaluation_figure:
