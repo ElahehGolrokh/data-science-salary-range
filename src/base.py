@@ -60,8 +60,6 @@ class BaseModelingPipeline(ABC):
         Features retained after feature selection.
     best_model_ : RegressorMixin or None
         Best-performing model after training/selection.
-    best_model_name_ : str or None
-        Name of the best-performing model.
     logger : logging.Logger
         Logger for the pipeline class.
 
@@ -87,9 +85,6 @@ class BaseModelingPipeline(ABC):
         self.best_model_name_file = self.config.files.best_model_name
         self.selected_features_file = self.config.files.selected_features
 
-        # OLD
-        # self.best_model_name_file = config.files.best_model_name_file
-        # self.selected_features_file = config.files.feature_selector
         self.save_flag = config.training.save_flag
         self.logging_flag = config.training.logging_flag
 
@@ -97,7 +92,6 @@ class BaseModelingPipeline(ABC):
         self.final_models_: dict[str, RegressorMixin] = None
         self.selected_features_ = selected_features_
         self.best_model_: RegressorMixin | None = None
-        self.best_model_name_: str | None = None
 
         self.logger = None
         self._handle_shape_error()

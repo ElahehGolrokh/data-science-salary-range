@@ -276,9 +276,9 @@ class ModelTrainer(BaseModelingPipeline):
 
     Attributes
     ----------
-    best_model_name_ : str, default=None
-        Name of the best model. If None, it is loaded from file.
-    best_model_ : RegressorMixin
+    model_name_ : str, default=None
+        Name of the model. If None, it is loaded from file.
+    model_ : RegressorMixin
         Fitted regression model.
 
 
@@ -303,11 +303,11 @@ class ModelTrainer(BaseModelingPipeline):
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
                  selected_features_: list[str] = None,
-                 best_model_name_: str = None):
+                 model_name: str = None):
 
         super().__init__(config, X_train, y_train, selected_features_)
-        self.best_model_name_ = best_model_name_
-        self.best_model_ = None
+        self.model_name = model_name
+        self.model_ = None
 
         # Parameters from config
         self.final_model_file = self.config.files.final_model
@@ -326,19 +326,21 @@ class ModelTrainer(BaseModelingPipeline):
                                  "convert feature_selection = True in the config & then" +
                                  "run `ModelSelector.run()` to perform feature " +
                                  "selection or give selected_features_ a default list.")
-        if self.best_model_name_ is None:
+        if self.model_name is None:
             try:
-                self.best_model_name_ = load_text(self.best_model_name_file,
-                                                  dir_path=self.artifacts_dir_path)
+                self.model_name = load_text(self.best_model_name_file,
+                                            dir_path=self.artifacts_dir_path)
             except Exception as e:
-                raise ValueError("best_model_name_ is None")
+                raise ValueError("model_name_ is None. You can either pass a model name "\
+                                 "or run `ModelSelector.run()` with compare_models = True" \
+                                 " to perform model selection.")
 
-        self.best_model_ = self.final_models_[self.best_model_name_]
+        self.model_ = self.final_models_[self.model_name]
 
         # Final fitting step
         self._fit()
         if self.save_flag:
-            save_object(self.best_model_,
+            save_object(self.model_,
                         self.final_model_file,
                         self.artifacts_dir_path)
             self.logger.info("Saved best model to %s", self.final_model_file)
@@ -353,4 +355,4 @@ class ModelTrainer(BaseModelingPipeline):
             self.logger.info('Fitting the best model on the full training set...')
         if self.feature_selection:
             self.X_train = self.X_train[self.selected_features_]
-        self.best_model_.fit(self.X_train, self.y_train)
+        self.model_.fit(self.X_train, self.y_train)
