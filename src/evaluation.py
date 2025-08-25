@@ -13,13 +13,38 @@ from omegaconf import OmegaConf
 import warnings
 
 
-from .utils import load_object, save_dataframe, save_text
+from .utils import load_object, save_dataframe, save_text, select_features
 from .inference import InferencePipeline
 
 warnings.filterwarnings('ignore')
 
 
 class Evaluator:
+    """
+    Evaluates the performance of the trained model on the test set.
+
+    >>> Example usage:
+
+    >>> Load data
+    loader = DataLoader(config,
+                        file_path=config.files.preprocessed_test)
+    X_test, y_test = loader.load()
+    src_df = load_dataframe(config.files.train_data,
+                            config.dirs.data)
+
+    >>> Initialize evaluator
+    evaluator = Evaluator(config,
+                          X_test,
+                          y_test,
+                          src_df,
+                          save_results)
+
+    >>> Run evaluation
+    evaluator.run(model=your_trained_model)
+
+    >>> Print summary
+    evaluator.print_summary()
+    """
     def __init__(self,
                  config: OmegaConf,
                  X_test: pd.DataFrame,
@@ -27,6 +52,7 @@ class Evaluator:
                  src_df: pd.DataFrame,
                  save_results: bool = True):
         self.config = config
+        self.feature_selection = config.inference.feature_selection
         self.X_test = X_test
         self.y_test = y_test
         self.src_df = src_df
@@ -61,7 +87,10 @@ class Evaluator:
         
         # Create visualizations
         self.evaluation_figure = self._create_visualizations()
-        
+
+        # Create feature importance plot
+        self.feature_importance_figure = self._get_feature_importance()
+
         if self.save_results:
             self._save_results()
         
@@ -252,10 +281,21 @@ class Evaluator:
             self.evaluation_figure.savefig(fig_path,
                                            dpi=300,
                                            bbox_inches='tight')
+        # Save feature importance plots
+        if self.feature_importance_figure:
+            fig_path = os.path.join(self.config.dirs.logs,
+                                    self.config.files.feature_importance_plot)
+            self.feature_importance_figure.savefig(fig_path,
+                                                   dpi=300,
+                                                   bbox_inches='tight')
 
     def _get_feature_importance(self, top_n: int = 10):
         """Get feature importance if model supports it"""
         if hasattr(self.model, 'feature_importances_'):
+            if self.feature_selection:
+                columns_to_keep = load_object(self.config.files.selected_features,
+                                              self.config.dirs.artifacts)
+                self.X_test = select_features(self.X_test, columns_to_keep)
             print(f'self.X_test.shape: {self.X_test.shape}')
             importance_df = pd.DataFrame({
                 'feature': self.X_test.columns,
@@ -263,14 +303,14 @@ class Evaluator:
             }).sort_values('importance', ascending=False)
             
             # Plot top features
-            plt.figure(figsize=(10, 6))
-            sns.barplot(data=importance_df.head(top_n), x='importance', y='feature')
-            plt.title(f'Top {top_n} Feature Importance')
-            plt.xlabel('Importance')
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.barplot(data=importance_df.head(top_n), x='importance', y='feature', ax=ax)
+            ax.set_title(f'Top {top_n} Feature Importance')
+            ax.set_xlabel('Importance')
             plt.tight_layout()
-            plt.show()
+            # plt.show()
+            return fig
             
-            return importance_df.head(top_n)
         else:
             print("Model doesn't support feature importance")
             return None

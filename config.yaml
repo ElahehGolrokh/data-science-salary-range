@@ -36,6 +36,7 @@ files:
   evaluation_metrics: 'evaluation_metrics.csv'
   evaluation_report: 'evaluation_report.txt'
   evaluation_plots: 'evaluation_plots.png'
+  feature_importance_plot: 'feature_importance_plot.png'
 
 preprocessing:
   # Splitter object
