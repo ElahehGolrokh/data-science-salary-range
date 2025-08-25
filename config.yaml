@@ -107,4 +107,4 @@ exporting:
   api_token: 'your-hf-api-token'
 
 inference:
-  feature_selection: true
+  feature_selection: False

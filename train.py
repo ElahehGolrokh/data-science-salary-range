@@ -12,9 +12,6 @@ parser = argparse.ArgumentParser(
     epilog=f'Thanks for using.'
 )
 
-parser.add_argument('-fs', '--feature_selection',
-                    action='store_true',
-                    help='Enable feature selection in the pipeline')
 parser.add_argument('-cm', '--compare_models',
                     action='store_true',
                     help='Enable model comparison in the pipeline')
@@ -26,27 +23,27 @@ args = parser.parse_args()
 config = OmegaConf.load('config.yaml')
 
 
-def main(feature_selection: bool,
-         compare_models: bool,
-         train_flag: bool):
+def main(compare_models: bool,
+         train: bool):
     loader = DataLoader(config,
                         file_path=config.files.preprocessed_train)
     X_train, y_train = loader.load()
     best_model_name_, selected_features_ = None, None
 
     # Feature selection and model comparison
+    feature_selection = config.inference.feature_selection
     if feature_selection or compare_models:
         model_selector = ModelSelector(config,
                                        X_train,
                                        y_train,
-                                       feature_selection_flag=feature_selection,
-                                       compare_models_flag=compare_models)
+                                       feature_selection=feature_selection,
+                                       compare_models=compare_models)
         best_model_name_, selected_features_ = model_selector.run()
         print(f'***************** model_selector.best_feature_counts_ : {model_selector.best_feature_counts_}')
 
 
     # Model training
-    if train_flag:
+    if train:
         model_trainer = ModelTrainer(config,
                                      X_train,
                                      y_train,
@@ -56,6 +53,5 @@ def main(feature_selection: bool,
 
 
 if __name__ == "__main__":
-    main(args.feature_selection,
-         args.compare_models,
+    main(args.compare_models,
          args.train)

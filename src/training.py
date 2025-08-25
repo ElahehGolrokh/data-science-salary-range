@@ -80,12 +80,12 @@ class ModelSelector(BaseModelingPipeline):
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
                  selected_features_: list[str] = None,
-                 feature_selection_flag: bool = True,
-                 compare_models_flag: bool = False):
+                 feature_selection: bool = True,
+                 compare_models: bool = False):
         super().__init__(config, X_train, y_train, selected_features_)
         # Store init params
-        self.feature_selection_flag = feature_selection_flag
-        self.compare_models_flag = compare_models_flag
+        self.feature_selection = feature_selection
+        self.compare_models = compare_models
 
         # Parameters from config
         self.feature_counts = self.config.training.feature_counts
@@ -105,7 +105,7 @@ class ModelSelector(BaseModelingPipeline):
         Runs the entire pipeline.
         """
         # Feature selection step
-        if self.feature_selection_flag:
+        if self.feature_selection:
             self._find_best_feature_counts()
             self._refit_rfe()
             if self.save_flag:
@@ -120,10 +120,10 @@ class ModelSelector(BaseModelingPipeline):
                     self.logger.info("Loaded selected features: %s", self.selected_features_)
                 except Exception as e:
                     raise ValueError("selected_features_ is None. You can either " +
-                                     "set feature_selection_flag=True to perform feature " +
+                                     "set feature_selection=True in the config file to perform feature " +
                                      "selection or give selected_features_ a default list.")
         # Model comparison step
-        if self.compare_models_flag:
+        if self.compare_models:
             self._get_best_model()
             if self.save_flag:
                 # Save only the name of the best model
@@ -308,19 +308,20 @@ class ModelTrainer(BaseModelingPipeline):
         """
         Runs the entire pipeline.
         """
-        if self.selected_features_ is None:
+        if self.feature_selection and self.selected_features_ is None:
             try:
                 self.selected_features_ = load_object(self.selected_features_file,
-                                                                dir_path=self.artifacts_dir_path)
+                                                      dir_path=self.artifacts_dir_path)
                 self.logger.info("Loaded selected features: %s", self.selected_features_)
             except Exception as e:
                 raise ValueError("selected_features_ is None. You can either " +
+                                 "convert feature_selection = True in the config & then" +
                                  "run `ModelSelector.run()` to perform feature " +
                                  "selection or give selected_features_ a default list.")
         if self.best_model_name_ is None:
             try:
                 self.best_model_name_ = load_text(self.best_model_name_file,
-                                                            dir_path=self.artifacts_dir_path)
+                                                  dir_path=self.artifacts_dir_path)
             except Exception as e:
                 raise ValueError("best_model_name_ is None")
 
@@ -330,10 +331,13 @@ class ModelTrainer(BaseModelingPipeline):
         self._fit()
         if self.save_flag:
             save_object(self.best_model_,
-                                self.final_model_file,
-                                self.artifacts_dir_path)
+                        self.final_model_file,
+                        self.artifacts_dir_path)
             self.logger.info("Saved best model to %s", self.final_model_file)
-        self.logger.info('Pipeline execution completed successfully.')
+        self.logger.info('Pipeline execution completed successfully. \n' \
+                         'feature_selection: %s', self.feature_selection)
+        if self.feature_selection:
+            self.logger.info('Selected features length: %s', len(self.selected_features_))
 
     def _fit(self) -> None:
         """
@@ -341,4 +345,6 @@ class ModelTrainer(BaseModelingPipeline):
         """
         if self.logging_flag:
             self.logger.info('Fitting the best model on the full training set...')
-        self.best_model_.fit(self.X_train[self.selected_features_], self.y_train)
+        if self.feature_selection:
+            self.X_train = self.X_train[self.selected_features_]
+        self.best_model_.fit(self.X_train, self.y_train)

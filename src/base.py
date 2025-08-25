@@ -33,6 +33,8 @@ class BaseModelingPipeline(ABC):
         Training feature matrix.
     y_train : pd.Series
         Training target values.
+    feature_selection: bool
+        Whether to perform feature selection.
     selected_features_ : list of str, optional
         Pre-selected feature names. If None, will be determined by a child class.
 
@@ -80,6 +82,7 @@ class BaseModelingPipeline(ABC):
         self.y_train = y_train
 
         # Parameters from config
+        self.feature_selection = self.config.inference.feature_selection
         self.artifacts_dir_path = self.config.dirs.artifacts
         self.best_model_name_file = self.config.files.best_model_name
         self.selected_features_file = self.config.files.selected_features
