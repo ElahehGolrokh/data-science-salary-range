@@ -28,7 +28,9 @@ class InferencePipeline:
         # Preprocess the input data
         if self.feature_selection:
             self._get_columns_to_keep()
-            self.input_df = select_features(self.input_df, self.columns_to_keep)
+            print(f'-----------Inference with {len(self.columns_to_keep)} features')
+            self.input_df = select_features(self.input_df,
+                                            self.columns_to_keep)
 
         # Make predictions
         predictions = self.model.predict(self.input_df)

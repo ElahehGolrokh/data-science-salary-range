@@ -28,18 +28,16 @@ def main(compare_models: bool,
     loader = DataLoader(config,
                         file_path=config.files.preprocessed_train)
     X_train, y_train = loader.load()
-    best_model_name_, selected_features_ = None, None
+    # best_model_name_, selected_features_ = None, None
 
     # Feature selection and model comparison
-    feature_selection = config.inference.feature_selection
-    if feature_selection or compare_models:
-        model_selector = ModelSelector(config,
-                                       X_train,
-                                       y_train,
-                                       feature_selection=feature_selection,
-                                       compare_models=compare_models)
-        best_model_name_, selected_features_ = model_selector.run()
-        print(f'***************** model_selector.best_feature_counts_ : {model_selector.best_feature_counts_}')
+    # feature_selection = config.inference.feature_selection
+    # if feature_selection or compare_models:
+    model_selector = ModelSelector(config,
+                                   X_train,
+                                   y_train,
+                                   compare_models=compare_models)
+    best_model_name_, selected_features_ = model_selector.run()
 
 
     # Model training

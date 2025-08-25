@@ -31,9 +31,9 @@ class ModelSelector(BaseModelingPipeline):
 
     Parameters
     ----------
-    feature_selection_flag : bool, default=True
+    feature_selection : bool, default=True
         Whether to perform feature selection.
-    compare_models_flag : bool, default=False
+    compare_models : bool, default=False
         Whether to compare models and select the best one.
     feature_counts : list of int, default=None
         List of feature counts to consider during selection.
@@ -80,12 +80,12 @@ class ModelSelector(BaseModelingPipeline):
                  X_train: pd.DataFrame,
                  y_train: pd.Series,
                  selected_features_: list[str] = None,
-                 feature_selection: bool = True,
-                 compare_models: bool = False):
+                 compare_models: bool = False,
+                 feature_count_: int = None):
         super().__init__(config, X_train, y_train, selected_features_)
         # Store init params
-        self.feature_selection = feature_selection
         self.compare_models = compare_models
+        self.feature_count_ = feature_count_
 
         # Parameters from config
         self.feature_counts = self.config.training.feature_counts
@@ -97,7 +97,6 @@ class ModelSelector(BaseModelingPipeline):
         self.rfe_step = self.config.training.rfe_step
 
         # Learned attributes (set after pipeline run)
-        self.best_feature_counts_: int | None = None
         self.best_model_name_: str | None = None
 
     def run(self) -> None:
@@ -106,37 +105,41 @@ class ModelSelector(BaseModelingPipeline):
         """
         # Feature selection step
         if self.feature_selection:
-            self._find_best_feature_counts()
-            self._refit_rfe()
-            if self.save_flag:
-                save_object(self.selected_features_,
-                                    self.selected_features_file,
-                                    self.artifacts_dir_path)
+            if self.feature_count_ is None:
+                if self.logging_flag:
+                    self.logger.info('Finding the optimum number of features...')
+                    self.feature_count_ = self._find_best_feature_counts()
+            else:
+                if self.logging_flag:
+                    self.logger.info('Using predefined feature count: %s', self.feature_count_)
+
+            self.selected_features_ = self._refit_rfe()
+
         else:
-            if self.selected_features_ is None:
-                try:
-                    self.selected_features_ = load_object(self.selected_features_file,
-                                                                    dir_path=self.artifacts_dir_path)
-                    self.logger.info("Loaded selected features: %s", self.selected_features_)
-                except Exception as e:
-                    raise ValueError("selected_features_ is None. You can either " +
-                                     "set feature_selection=True in the config file to perform feature " +
-                                     "selection or give selected_features_ a default list.")
+            # Use all features
+            self.selected_features_ = self.X_train.columns.tolist()
+        
+        if self.save_flag:
+            save_object(self.selected_features_,
+                        self.selected_features_file,
+                        self.artifacts_dir_path)
+
         # Model comparison step
         if self.compare_models:
             self._get_best_model()
             if self.save_flag:
                 # Save only the name of the best model
                 save_text(self.best_model_name_,
-                                  self.best_model_name_file,
-                                  self.artifacts_dir_path)
+                          self.best_model_name_file,
+                          self.artifacts_dir_path)
                 self.logger.info("Saved best model name to %s", self.best_model_name_file)
         else:
             try:
                 self.best_model_name_ = load_text(self.best_model_name_file,
-                                                            dir_path=self.artifacts_dir_path)
+                                                  dir_path=self.artifacts_dir_path)
             except Exception as e:
-                raise ValueError("best_model_name_ is None")
+                raise ValueError("best_model_name_ is None. run train.py -cm to" \
+                                 " compare models & find the best performing one.")
         return self.best_model_name_, self.selected_features_
 
     # feature selection
@@ -144,8 +147,6 @@ class ModelSelector(BaseModelingPipeline):
         """
         Finds the best number of features to preserve.
         """
-        if self.logging_flag:
-            self.logger.info('Finding the optimum number of features...')
         if self.model is None:
             self.model = RandomForestRegressor()
         mean_scores = []
@@ -162,22 +163,24 @@ class ModelSelector(BaseModelingPipeline):
             scores = cross_val_score(pipeline, self.X_train, self.y_train, cv=cv, scoring=self.scoring)
             mean_scores.append(np.mean(scores))
             self.logger.info("CV score for %s features: %.4f", n_features, np.mean(scores))
-        self.best_feature_counts_ = self._choose_features_from_elbow(mean_scores, self.feature_counts)
-        if len(self.X_train.columns) < self.best_feature_counts_:
-            raise ValueError(f"X_train must have at least {self.best_feature_counts_} features.")
+        best_feature_count = self._choose_features_from_elbow(mean_scores, self.feature_counts)
+        if len(self.X_train.columns) < best_feature_count:
+            raise ValueError(f"X_train must have at least {best_feature_count} features.")
+        return best_feature_count
 
     def _refit_rfe(self) -> list[str]:
         """
         Refits RFE on the full training set with the best number of features.
         """
         if self.logging_flag:
-            self.logger.info(f'Refitting RFE with {self.best_feature_counts_} features...')
+            self.logger.info(f'Refitting RFE with {self.feature_count_} features...')
         rfe = RFE(estimator=self.model,
-                  n_features_to_select=self.best_feature_counts_,
+                  n_features_to_select=self.feature_count_,
                   step=self.rfe_step,
                   verbose=0)
         rfe.fit(self.X_train, self.y_train)
-        self.selected_features_ = self.X_train.columns[rfe.support_].tolist()
+        selected_features_ = self.X_train.columns[rfe.support_].tolist()
+        return selected_features_
 
     # model selection
     def _compare_models(self) -> pd.DataFrame:
@@ -334,10 +337,8 @@ class ModelTrainer(BaseModelingPipeline):
                         self.final_model_file,
                         self.artifacts_dir_path)
             self.logger.info("Saved best model to %s", self.final_model_file)
-        self.logger.info('Pipeline execution completed successfully. \n' \
-                         'feature_selection: %s', self.feature_selection)
-        if self.feature_selection:
-            self.logger.info('Selected features length: %s', len(self.selected_features_))
+        self.logger.info('Pipeline execution completed successfully with %s features. \n' \
+                         'feature_selection: %s', len(self.selected_features_), self.feature_selection)
 
     def _fit(self) -> None:
         """
