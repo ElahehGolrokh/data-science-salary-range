@@ -138,8 +138,9 @@ class ModelSelector(BaseModelingPipeline):
                 self.best_model_name_ = load_text(self.best_model_name_file,
                                                   dir_path=self.artifacts_dir_path)
             except Exception as e:
-                raise ValueError("best_model_name_ is None. run train.py -cm to" \
-                                 " compare models & find the best performing one.")
+                self.best_model_name_ = None
+                self.logger.warning("best_model_name_ is None. run train.py -cm to"
+                                    " compare models & find the best performing one.")
         return self.best_model_name_, self.selected_features_
 
     # feature selection
