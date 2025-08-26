@@ -132,13 +132,14 @@ class Preprocessor:
         if phase != "inference":
             input_df = self._drop_useless_features(input_df)
             input_df = self._impute_missing_values(input_df, src_df)
-            input_df = self._remove_outliers(input_df, src_df, q=.99)
+            # input_df = self._remove_outliers(input_df, src_df, q=.99)
         # 🚨 Ensure target is removed in inference
         if self.target in input_df.columns and phase == "inference":
             input_df = input_df.drop(columns=[self.target], axis=1)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
-        input_df = self._standardize(input_df, src_df)
+        # input_df = self._standardize(input_df, src_df)
+        input_df = self._log_transform_features(input_df)
         if transform_target:
             input_df = self._log_transform_target(input_df)
         if self.save_flag:
@@ -326,4 +327,12 @@ class Preprocessor:
         Applies log transformation to the target variable.
         """
         input_df[self.target] = np.log1p(input_df[self.target])
+        return input_df
+
+    def _log_transform_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies log transformation to the specified features.
+        """
+        for col in self.numerical_features:
+            input_df[col] = np.log1p(input_df[col])
         return input_df
