@@ -98,7 +98,7 @@ class GradioApp:
                 path = hf_hub_download(repo_id=self.repo_id, filename=filename)
                 downloaded[key] = path
             except Exception as e:
-                print(f"⚠️ Could not download {filename}: {e}")
+                raise ValueError(f"⚠️ Could not download {filename}: {e}")
         return downloaded
 
     def _load_artifacts(self) -> None:
@@ -159,7 +159,7 @@ class GradioApp:
         """
         X = self._get_user_inputs(user_inputs)
         if X is None:
-            return "⚠️ Error during input vector construction"
+            raise ValueError("⚠️ Error during input vector construction")
         try:
             X = np.array(X).reshape(1, -1)
             X = pd.DataFrame(X, columns=self.features)
@@ -174,8 +174,8 @@ class GradioApp:
                                                phase='inference',
                                                transform_target=False)
             return preprocessed_df
-        except:
-            return "⚠️ Error during preprocessing"
+        except Exception as e:
+            raise ValueError(f"⚠️ Error during preprocessing: {e}")
 
     def _predict(self, user_inputs: dict) -> str:
         """
@@ -210,7 +210,7 @@ class GradioApp:
                 return f"Estimated annual salary: € {result}"
 
         except Exception as e:
-            return f"⚠️ Error during prediction: {e}"
+            raise ValueError(f"⚠️ Error during prediction: {e}")
 
     def _get_interface(self) -> gr.Interface:
         """
