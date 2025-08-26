@@ -182,9 +182,10 @@ class ModelSelector(BaseModelingPipeline):
         rfe.fit(self.X_train, self.y_train)
         selected_features_ = self.X_train.columns[rfe.support_].tolist()
         # Force certain features to be included
-        force_to_keep = ['seniority_level_lead',
-                         'seniority_level_midlevel',
-                         'seniority_level_senior']
+        # force_to_keep = ['seniority_level_lead',
+        #                  'seniority_level_midlevel',
+        #                  'seniority_level_senior']
+        force_to_keep = ['seniority_level']
         selected_features_ = set(force_to_keep + selected_features_)
         return list(selected_features_)
 

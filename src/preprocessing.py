@@ -138,8 +138,8 @@ class Preprocessor:
             input_df = input_df.drop(columns=[self.target], axis=1)
         input_df = self._one_hot_encode_categorical(input_df, src_df)
         input_df = self._process_skills(input_df, src_df)
-        # input_df = self._standardize(input_df, src_df)
-        input_df = self._log_transform_features(input_df)
+        input_df = self._standardize(input_df, src_df)
+        input_df = self._ordinal_encode_features(input_df)
         if transform_target:
             input_df = self._log_transform_target(input_df)
         if self.save_flag:
@@ -335,4 +335,22 @@ class Preprocessor:
         """
         for col in self.numerical_features:
             input_df[col] = np.log1p(input_df[col])
+        return input_df
+
+    def _ordinal_encode_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Applies ordinal encoding to the specified features.
+        """
+        seniority_map = {
+            "junior": 1,
+            "midlevel": 2,
+            "senior": 3,
+            "lead": 4,
+        }
+
+        # Apply to your dataset
+        input_df["seniority_level"] = input_df["seniority_level"].map(seniority_map)
+
+        # Handle missing/unknown
+        input_df["seniority_level"].fillna(-1, inplace=True)
         return input_df

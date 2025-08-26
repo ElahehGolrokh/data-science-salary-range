@@ -34,15 +34,12 @@ def main(compare_models: bool,
     X_train, y_train = loader.load()
 
     # Feature selection and model comparison
-    # feature_selection = config.inference.feature_selection
-    # if feature_selection or compare_models:
     model_selector = ModelSelector(config,
                                    X_train,
                                    y_train,
                                    compare_models=compare_models,
-                                   feature_count_=20)
+                                   feature_count_=15)
     best_model_name_, selected_features_ = model_selector.run()
-
 
     # Model training
     model_name = model_name if model_name else best_model_name_

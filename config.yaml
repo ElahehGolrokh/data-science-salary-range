@@ -66,9 +66,10 @@ preprocessing:
                     ]
   target: ['mean_salary']  # defined so for serving
   # target: 'mean_salary'
+  ordinal_features: ['seniority_level']
   numerical_features: ['company_size']
-  categorical_features: ['seniority_level', 'status', 'location',
-                        'headquarter', 'industry', 'ownership']
+  categorical_features: ['status', 'location',
+                         'headquarter', 'industry', 'ownership']
 
 training:
   feature_counts: [5, 10, 15, 20, 30, 40]
@@ -107,4 +108,4 @@ exporting:
   api_token: 'your-hf-api-token'
 
 inference:
-  feature_selection: False
+  feature_selection: True
