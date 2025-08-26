@@ -226,14 +226,15 @@ class GradioApp:
         for feat in self.features:
             if feat in self.config.preprocessing.numerical_features:
                 inputs.append(gr.Number(label=feat))
-            elif feat in self.config.preprocessing.categorical_features:
+            elif feat in self.config.preprocessing.categorical_features or \
+                feat in self.config.preprocessing.ordinal_features:
                 # Get unique categories from the source DataFrame
                 categories = self.src_df[feat].dropna().unique().tolist()
                 # remove Remote from locations
                 if 'Remote' in categories:
                     categories.remove('Remote')
                 inputs.append(gr.Dropdown(choices=categories, label=feat))
-            else:
+            else:  # skills
                 inputs.append(gr.Textbox(label=feat,
                                          lines=2,
                                          placeholder="Enter text here, each one separated by a comma"))

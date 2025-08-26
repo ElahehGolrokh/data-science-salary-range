@@ -347,8 +347,6 @@ class Preprocessor:
             "senior": 3,
             "lead": 4,
         }
-
-        # Apply to your dataset
         input_df["seniority_level"] = input_df["seniority_level"].map(seniority_map)
 
         # Handle missing/unknown
