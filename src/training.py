@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import pandas as pd
 
 from kneed import KneeLocator
@@ -8,6 +9,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.feature_selection import RFE
 
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+from typing import Dict, Callable
 from .utils import get_default_model, save_object, \
                    load_object, save_text, \
                    load_text
@@ -313,6 +317,7 @@ class ModelTrainer(BaseModelingPipeline):
 
         # Parameters from config
         self.final_model_file = self.config.files.final_model
+        self.best_params_file = self.config.files.best_params
 
     def run(self) -> None:
         """
@@ -337,7 +342,21 @@ class ModelTrainer(BaseModelingPipeline):
                                  "or run `ModelSelector.run()` with compare_models = True" \
                                  " to perform model selection.")
 
-        self.model_ = self.final_models_[self.model_name]
+        if isinstance(self.model_name , str):
+            if self.model_name == "RandomForest":
+                self.model_ = self._load_model()
+            else:
+                # Load models other than RandomForest from final_models_ dict
+                self.model_ = self.final_models_[self.model_name]
+                self.logger.info("Loaded model: %s", self.model_name)
+                self.logger.info("This model is fitted with default hyperparameters.")
+        elif isinstance(self.model_name, RandomForestRegressor):
+            # Then fine-tunning is already run & the best hyperparameters are loaded
+            self.model_ = self.model_name
+            self.logger.info("Loaded RandomForest model after fine-tuning with the \
+                             best hyperparameters.")
+        else:
+            raise ValueError("Invalid model name.")
 
         # Final fitting step
         self._fit()
@@ -349,6 +368,30 @@ class ModelTrainer(BaseModelingPipeline):
         self.logger.info('Pipeline execution completed successfully with %s features. \n' \
                          'selected_features: %s', len(self.selected_features_), self.selected_features_)
 
+    def _load_model(self) -> RandomForestRegressor:
+        """
+        Load RandomForestRegressor with either fine-tuned best params (if available)
+        or default params from config.yaml.
+        """
+        best_params_path = os.path.join(self.artifacts_dir_path,
+                                        self.best_params_file)
+
+        if os.path.exists(best_params_path):
+            # ✅ Fine-tuned params found
+            best_params = load_object(self.best_params_file,
+                                      self.artifacts_dir_path)
+            self.logger.info(f"⚡ Loading fine-tuned RandomForest with params \
+                             from {self.best_params_file}")
+            return RandomForestRegressor(**best_params)
+        else:
+            # ❌ No fine-tuned params → load defaults
+            self.logger.warning("⚠️ No fine-tuned params found. Loading default \
+                                RandomForest from config.")
+            default_model_cfg = self.config.training.default_model
+            model_name = default_model_cfg["name"]
+            model_params = default_model_cfg.get("params", {})
+            return MODEL_MAP[model_name](**model_params)
+
     def _fit(self) -> None:
         """
         Fits the best model on the full training set.
@@ -358,3 +401,121 @@ class ModelTrainer(BaseModelingPipeline):
         if self.feature_selection:
             self.X_train = self.X_train[self.selected_features_]
         self.model_.fit(self.X_train, self.y_train)
+
+
+class RandomForestFineTuner:
+    """
+    Fine-tunes a RandomForestRegressor model using either grid search or random search.
+
+    >>> Example
+    >>> config = {...}
+    >>> tuner = RandomForestFineTuner(config)
+    >>> best_model = tuner.fit(X_train, y_train)
+    >>> tuner.evaluate(X_test, y_test, {'r2_score': r2_score,
+                                        'mean_absolute_error': mean_absolute_error})
+    """
+    def __init__(self,
+                 config: dict,
+                 search: str = "grid",
+                 cv: int = 5,
+                 n_iter: int = 30,
+                 scoring: str = "r2",
+                 n_jobs: int = -1):
+        """
+        search: "grid" or "random"
+        cv: number of cross-validation folds
+        n_iter: number of parameter settings for RandomizedSearchCV
+        scoring: metric for optimization ("r2", "neg_mean_absolute_error", etc.)
+        n_jobs: parallel jobs
+        """
+        self.config = config
+        self.search = search
+        self.cv = cv
+        self.n_iter = n_iter
+        self.scoring = scoring
+        self.n_jobs = n_jobs
+        self.random_state = self.config.preprocessing.random_state
+        self.save_flag = self.config.training.save_flag
+        self.best_model = None
+        self.best_params = None
+        self.searcher = None
+
+        # Define parameter grid
+        self.param_grid = {
+            "n_estimators": [200, 400, 800, 1200],
+            "max_depth": [None, 10, 20, 30, 50],
+            "min_samples_split": [2, 5, 10],
+            "min_samples_leaf": [1, 2, 5, 10],
+            "max_features": ["auto", "sqrt", 0.3, 0.5, 0.7],
+            "bootstrap": [True, False]
+        }
+
+    def fit(self, X, y):
+        base_model = RandomForestRegressor(random_state=self.random_state,
+                                           n_jobs=self.n_jobs)
+
+        if self.search == "grid":
+            self.searcher = GridSearchCV(
+                estimator=base_model,
+                param_grid=self.param_grid,
+                scoring=self.scoring,
+                cv=self.cv,
+                n_jobs=self.n_jobs,
+                verbose=2,
+            )
+        else:  # random search
+            self.searcher = RandomizedSearchCV(
+                estimator=base_model,
+                param_distributions=self.param_grid,
+                n_iter=self.n_iter,
+                scoring=self.scoring,
+                cv=self.cv,
+                n_jobs=self.n_jobs,
+                random_state=self.random_state,
+                verbose=2,
+            )
+
+        self.searcher.fit(X, y)
+        self.best_model = self.searcher.best_estimator_
+        self.best_params = self.searcher.best_params_
+        if self.save_flag:
+            save_object(self.best_params,
+                        self.config.files.best_params,
+                        self.config.dirs.artifacts)
+        return self.best_model
+
+    def evaluate(self, X, y_true, custom_metrics: Dict[str, Callable]):
+        """
+        Evaluate the fitted model on given data using custom metrics.
+        It is flexible enough to support any scikit-learn compatible
+        metrics (e.g., `mean_absolute_error`, `r2_score`) or custom functions 
+        following the signature `func(y_true, y_pred) -> float`.
+
+        Parameters
+        ----------
+        X : ArrayLike or pd.DataFrame
+            Input features for prediction.
+        y_true : ArrayLike
+            True target values.
+        custom_metrics : Dict[str, Callable]
+            Dictionary of metric functions with names as keys.
+            Each function must take (y_true, y_pred) and return a float.
+
+        Returns
+        -------
+        Dict[str, float]
+            Metric names mapped to their computed values.
+
+        Raises
+        ------
+        ValueError
+            If the model is not yet fitted.
+        """
+        if self.best_model is None:
+            raise ValueError("Model not yet fitted. Call fit() first.")
+
+        y_pred = self.best_model.predict(X)
+        results = dict()
+        for metric_name, metric_func in custom_metrics.items():
+            results[metric_name] = metric_func(y_true, y_pred)
+        return results
