@@ -17,8 +17,8 @@ This guide explains how to install dependencies and run each phase of the pipeli
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/ds-salary-estimation.git
-cd ds-salary-estimation
+git clone git@github.com:ElahehGolrokh/data-science-salary-range.git
+cd data-science-salary-range
 ```
 
 2. Set up a virtual environment
@@ -44,12 +44,13 @@ pip install -r requirements.txt
 
 **Arguments for `crawl.py`:**  
 
-| Argument   | Description | Default |
-|------------|-------------|---------|
-| `--pages` | Number of pages to scrape | From `config.pages` |
-| `--url` | Base URL to start crawling | From `config.url` |
-| `--file_path` | File path to save raw data | From `config.files.raw_data` |
-| `--dir_path` | Directory path for data storage | From `config.dirs.data` |
+| Short | Long        | Description | Default |
+|-------|------------|-------------|---------|
+| `-p`  | `--pages`  | Set number of pages to scrape | From `config.pages` |
+| `-u`  | `--url`    | Set the base URL for scraping | From `config.url` |
+| `-fp` | `--file_path` | Set the file path for saving data | From `config.files.raw_data` |
+| `-dp` | `--dir_path`  | Set the directory path for saving data | From `config.dirs.data` |
+
 
 **Example:**  
 ```bash
@@ -82,40 +83,69 @@ python crawl.py --pages 10 --url "https://example.com/jobs" --file_path "raw_df.
 - Exported to:  data/raw_data.csv
 
 
-### 2️⃣ Data Preparation
+### 2️⃣ Feature Engineering
+
+**Note:** Several features were extracted from job descriptions using LLM APIs, including job industry. The raw data was then processed, manipulated, and saved as `data/raw_df.csv`. The published version is this processed dataset, and further feature engineering can be explored in the accompanying notebook.
+
+#### ⚙️ Technical Details  
+- Implemented in: `Notebooks/data_science_salary_feature_engineering_Public_data.ipynb`  
+- **Input**: `data/raw_df.csv` (transformed scraped data)  
+- **Output**: `data/df_feature_engineered.csv` (enriched dataset)
+- **Steps**:
+  1. Removing jobs posted more than 1 year ago
+  2. Fixing the mixed columns for jobs missing company information (ownership, company_size, revenue)
+  3. Transforming location and headquarter features to extract continent (Canada & US preserved as countries)
+  4. Transforming salary and extracting the mean_salary
+
+### ▶️ Usage  
+Open and run the feature engineering notebook: 
+
+```bash
+notebooks/data_science_salary_feature_engineering_Public_data.ipynb
+```
+
+
+### 3️⃣ Exploratory Data Analysis (EDA)
+
+To analyze trends in job roles, seniority levels, industries, required skills, and compensation.  
+
+- Implemented in: `notebooks/data_science_salary_EDA.ipynb`  
+- **Input**: `data/df_feature_engineered.csv`  
+
+
+### 4️⃣ Preprocessing
+
+To prepare the feature-engineered dataset for machine learning by handling missing values, encoding categorical features, processing skill stes, and scaling numerical variables.  
+
 Run:
 
-bash
-Copy
-Edit
-python prepare.py
-Input: data/raw_df.csv
+```bash
+python prepare.py -s
+```
 
-Output: data/cleaned_df.csv (processed dataset).
+**Arguments for `prepare.py`:**
 
-3️⃣ Exploratory Data Analysis (EDA)
+| Short | Long        | Description |
+|-------|------------|-------------|---------|
+| `-s`  | `--save_flag`  | Whether to save the preprocessed data and the preprocessing artifacts | 
+
+
+- **Input:** df_feature_engineered.csv (from `config.files.feature_engineered`)
+- **Output:** `preprocessed_train_df.csv` & `preprocessed_test_df.csv` (from `config.files.preprocessed_train` & `config.files.preprocessed_test` respectively) if the `-s` flag is used during the run
+
+<!-- To Do: Add more details about the implemented steps -->
+
+### 5️⃣ Model Building & Training
 Run:
 
-bash
-Copy
-Edit
-python -m src.evaluation --eda
-Input: data/cleaned_df.csv
-
-Output: Plots & stats in reports/eda/.
-
-4️⃣ Training
-Run:
-
-bash
-Copy
-Edit
+```bash
 python train.py
-Input: data/cleaned_df.csv
+```
 
-Output: CV scores, selected features in artifacts/feature_selection.json.
+- **Input**: `data/preprocessed_train_df.csv`  
+- **Output**: Model artifacts (e.g., `.pkl` files)
 
-5️⃣ Evaluation
+### 6️⃣ Evaluation
 Run:
 
 bash
@@ -126,7 +156,7 @@ Input: Trained model + test split
 
 Output: Metrics (metrics.json) in artifacts/.
 
-6️⃣ Exporting
+### 7️⃣ Exporting
 Run:
 
 bash
@@ -135,7 +165,7 @@ Edit
 python export.py
 Output: Final trained model (final_model.pkl) in artifacts/.
 
-7️⃣ Serving (Deployment)
+###  Serving (Deployment)
 Run:
 
 bash
