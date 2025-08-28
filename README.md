@@ -11,7 +11,7 @@ While salary prediction is inherently noisy, the focus is on demonstrating **pra
 
 ---
 ## 💻 Code and Resources Used
-- **Python Version**: 3.7  
+- **Python Version**: 3.9.12  
 - **Packages**: pandas, numpy, scikit-learn, matplotlib, seaborn, selenium, pickle, gradio
 
 ---
