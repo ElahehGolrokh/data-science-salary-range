@@ -16,6 +16,7 @@ Although predicting salaries precisely is inherently noisy, this work demonstrat
 ## 🔍 Data Pipeline
 - **Crawling**: Over 1000 job postings scraped using Python and Selenium.  
 - **Data Cleaning**: Extracted skill sets, experience, company info, industry, and location. Data types were fixed and string manipulation applied to extract purely numerical features. Some features were **derived from job descriptions using LLM APIs**, which are not published here **to respect the source website’s privacy policy**.
+- **EDA**: Exploratory Data Analysis to understand distributions, correlations, and outliers before modeling.
 - **Preprocessing**:  
   - Dropped non-informative features 
   - Ordinal encoding for `seniority_level` (`junior < midlevel < senior < lead`)  
@@ -40,8 +41,8 @@ Although predicting salaries precisely is inherently noisy, this work demonstrat
 ---
 
 ## 📊 Evaluation Results
-| Metric | Best RF Model |
-|--------|---------------|
+| Metric | Best RF Model | Description |
+|--------|---------------|-------------|
 | R² | ~0.57 | Explains about half of the variance → decent given noisy features, but not strong enough for real-world salary prediction. |
 | MAE | ~$30k | (~25% of average salary): Too large for practical salary modeling. |
 | RMSE | ~$42k | Indicates large average error magnitude, reinforcing limited practical accuracy. |
