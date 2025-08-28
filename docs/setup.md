@@ -7,10 +7,9 @@ This guide explains how to install dependencies and run each phase of the pipeli
 ## 🔄 Pipeline Overview  
 
 ```text
-[Data Collection] → [Data Preparation] → [EDA] → [Training] → [Evaluation] → [Exporting] → [Serving]
-       |                 |                 |        |            |              |            |
- raw_df.csv       cleaned_df.csv        reports/   artifacts/   metrics.json   final_model.pkl  Gradio UI
-```
+[Data Collection] → [Feature Engineering] → [EDA] → [Preprocessing] → [Training] → [Evaluation] → [Exporting] → [Serving]
+       |                   |                 |          |               |              |              |            |
+ raw_df.csv      df_feature_engineered.csv   notebook   preprocessed_*   artifacts/    logs/          HF Hub       Gradio UI
 ---
 
 ## 📦 Installation
@@ -78,7 +77,7 @@ python crawl.py --pages 10 --url "https://example.com/jobs" --file_path "raw_df.
   - Error handling for missing or inconsistent fields  
   - Configurable depth (`pages` parameter).  
 
-#### 📤 Output  
+**Output:** 
 - Raw job data stored as a **pandas DataFrame**  
 - Exported to:  data/raw_data.csv
 
@@ -250,42 +249,19 @@ python export.py -ri "username/repo-name" --api_token "hf_xxxxx"
     - Feature selection metadata (`selected_features.pkl`)
     - Preprocessing artifacts (e.g., scalers, encoders)
 
-- **Output (saved in logs/):** Artifacts uploaded to the specified Hugging Face repo. Returns a list of URLs for each uploaded file.
+- **Output (saved in logs/):** Artifacts uploaded to the specified Hugging Face repo. Returns a list of URLs for each uploaded file for easy reference or download. Each artifact will be uploaded to the repo with the same filename.
 
 
-#### ⚙️ Technical Details
-Artifact Discovery
-
-The Exporter class automatically reads all files in the artifacts/ directory.
-
-Prints a summary of discovered files for verification.
-
-Repository Handling
-
-Ensures the specified Hugging Face repository exists (creates if necessary).
-
-Uploading
-
-Uploads each artifact to the repo with the same filename.
-
-Prints upload progress and final confirmation.
-
-Returned Output
-
-Returns a list of URLs pointing to the uploaded artifacts for easy reference or download.
-
-###  Serving (Deployment)
+### 8️⃣ Serving (Deployment)
 Run:
 
-bash
-Copy
-Edit
-python -m src.serving
-Output: Gradio app running at http://localhost:7860.
+```bash
+python app.py
+```
 
-🛠 Notes
-Configuration: config.yaml
+**Output:** Gradio app running at http://localhost:7860.
 
-Private keys: private_settings.yaml (not versioned)
-
-Full explanations: see docs/ directory
+## 🛠 Notes
+- Configuration: `config.yaml`
+- Private keys: `private_settings.yaml`
+- Full explanations: see `docs/` directory
