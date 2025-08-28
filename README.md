@@ -47,8 +47,8 @@ While salary prediction is inherently noisy, the focus is on demonstrating **pra
 | Metric | Best RF Model | Description |
 |--------|---------------|-------------|
 | R² | ~0.57 | Explains about half of the variance → decent given noisy features, but not strong enough for real-world salary prediction. |
-| MAE | ~$30k | (~25% of average salary): Too large for practical salary modeling. |
-| RMSE | ~$42k | Indicates large average error magnitude, reinforcing limited practical accuracy. |
+| MAE | ~€30k | (~25% of average salary): Too large for practical salary modeling. |
+| RMSE | ~€42k | Indicates large average error magnitude, reinforcing limited practical accuracy. |
 | MAPE | ~42% | Very high → poor for low-salary roles (e.g., $60K predicted as $90K = 50% error). |
 
 

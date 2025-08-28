@@ -212,38 +212,91 @@ class GradioApp:
         except Exception as e:
             raise ValueError(f"⚠️ Error during prediction: {e}")
 
-    def _get_interface(self) -> gr.Interface:
+    # def _get_interface(self) -> gr.Interface:
+    #     """
+    #     Build the Gradio interface for interactive inference.
+
+    #     Returns
+    #     -------
+    #     gr.Interface
+    #         Configured Gradio interface object with feature inputs and
+    #         prediction output.
+    #     """
+    #     inputs = []
+    #     for feat in self.features:
+    #         if feat in self.config.preprocessing.numerical_features:
+    #             inputs.append(gr.Number(label=feat))
+    #         elif feat in self.config.preprocessing.categorical_features or \
+    #             feat in self.config.preprocessing.ordinal_features:
+    #             # Get unique categories from the source DataFrame
+    #             categories = self.src_df[feat].dropna().unique().tolist()
+    #             # remove Remote from locations
+    #             if 'Remote' in categories:
+    #                 categories.remove('Remote')
+    #             inputs.append(gr.Dropdown(choices=categories, label=feat))
+    #         else:  # skills
+    #             inputs.append(gr.Textbox(label=feat,
+    #                                      lines=2,
+    #                                      placeholder="Enter text here, each one separated by a comma"))
+    #     app = gr.Interface(
+    #         fn=lambda *args: self._predict(dict(zip(self.features, args))),
+    #         inputs=inputs,
+    #         outputs=gr.Textbox(label="Predicted Salary (Annual, in €)"),
+    #         title=f"Data Science Salary Predictor",
+    #         description="This app uses machine learning to estimate salaries for data science roles. \
+    #                      Try it out with your own profile!"
+    #     )
+    #     return app
+
+    def _get_interface(self) -> gr.Blocks:
         """
         Build the Gradio interface for interactive inference.
 
         Returns
         -------
-        gr.Interface
-            Configured Gradio interface object with feature inputs and
-            prediction output.
+        gr.Blocks
+            Configured Gradio Blocks app with feature inputs,
+            prediction output, and optional model performance.
         """
-        inputs = []
-        for feat in self.features:
-            if feat in self.config.preprocessing.numerical_features:
-                inputs.append(gr.Number(label=feat))
-            elif feat in self.config.preprocessing.categorical_features or \
-                feat in self.config.preprocessing.ordinal_features:
-                # Get unique categories from the source DataFrame
-                categories = self.src_df[feat].dropna().unique().tolist()
-                # remove Remote from locations
-                if 'Remote' in categories:
-                    categories.remove('Remote')
-                inputs.append(gr.Dropdown(choices=categories, label=feat))
-            else:  # skills
-                inputs.append(gr.Textbox(label=feat,
-                                         lines=2,
-                                         placeholder="Enter text here, each one separated by a comma"))
-        app = gr.Interface(
-            fn=lambda *args: self._predict(dict(zip(self.features, args))),
-            inputs=inputs,
-            outputs=gr.Textbox(label="Predicted Salary (Annual, in €)"),
-            title=f"Data Science Salary Predictor",
-            description="This app uses machine learning to estimate salaries for data science roles. \
-                         Try it out with your own profile!"
-        )
+        with gr.Blocks() as app:
+            gr.Markdown(
+                f"# 📊 Data Science Salary Predictor\n"
+                f"Estimate salaries for data science roles using machine learning."
+            )
+
+            with gr.Tab("🔮 Prediction"):
+                inputs = []
+                for feat in self.features:
+                    if feat in self.config.preprocessing.numerical_features:
+                        inputs.append(gr.Number(label=feat))
+                    elif feat in self.config.preprocessing.categorical_features or \
+                        feat in self.config.preprocessing.ordinal_features:
+                        categories = self.src_df[feat].dropna().unique().tolist()
+                        if 'Remote' in categories:
+                            categories.remove('Remote')
+                        inputs.append(gr.Dropdown(choices=categories, label=feat))
+                    else:  # skills
+                        inputs.append(gr.Textbox(
+                            label=feat,
+                            lines=2,
+                            placeholder="Enter text here, separated by commas"
+                        ))
+
+                gr.Interface(
+                    fn=lambda *args: self._predict(dict(zip(self.features, args))),
+                    inputs=inputs,
+                    outputs=gr.Textbox(label="Predicted Salary (Annual, in €)"),
+                )
+
+            with gr.Tab("📈 Model Performance"):
+                gr.Markdown(
+                    "### Evaluation Results\n"
+                    "Here are the model's evaluation metrics on the test set:\n\n"
+                    "- **R² Score:** ~0.57  \n"
+                    "- **MAE:** ~€30k  \n"
+                    "- **RMSE:** ~€42k  \n\n"
+                    "⚠️ Note: These results indicate the model still struggles with accuracy, "
+                    "so predictions should be taken as *rough estimates*, not exact values."
+                )
+
         return app
