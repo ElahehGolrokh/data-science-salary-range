@@ -10,6 +10,8 @@ This guide explains how to install dependencies and run each phase of the pipeli
 [Data Collection] → [Feature Engineering] → [EDA] → [Preprocessing] → [Training] → [Evaluation] → [Exporting] → [Serving]
        |                   |                 |          |               |              |              |            |
  raw_df.csv      df_feature_engineered.csv   notebook   preprocessed_*   artifacts/    logs/          HF Hub       Gradio UI
+ ```
+ 
 ---
 
 ## 📦 Installation
