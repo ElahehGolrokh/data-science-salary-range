@@ -126,44 +126,153 @@ python prepare.py -s
 **Arguments for `prepare.py`:**
 
 | Short | Long        | Description |
-|-------|------------|-------------|---------|
+|-------|-------------|-------------|
 | `-s`  | `--save_flag`  | Whether to save the preprocessed data and the preprocessing artifacts | 
 
 
 - **Input:** df_feature_engineered.csv (from `config.files.feature_engineered`)
 - **Output:** `preprocessed_train_df.csv` & `preprocessed_test_df.csv` (from `config.files.preprocessed_train` & `config.files.preprocessed_test` respectively) if the `-s` flag is used during the run
 
-<!-- To Do: Add more details about the implemented steps -->
+<!-- To Do: Add more details about the implemented steps + src_df -->
 
 ### 5️⃣ Model Building & Training
+Train the machine learning models on the preprocessed dataset. You can optionally implement feature selection, compare multiple models, and fine-tune the chosen model.  
+
 Run:
 
 ```bash
-python train.py
+python train.py -t -cm -mn RandomForest -fn
 ```
 
-- **Input**: `data/preprocessed_train_df.csv`  
-- **Output**: Model artifacts (e.g., `.pkl` files)
+**Arguments for `train.py`:**
+
+| Short | Long        | Description | Default |
+|-------|------------|-------------|---------|
+| `-cm`  | `--compare_models`  | Enable model comparison in the pipeline | False |
+| `-t`  | `--train`    | Enable model training in the pipeline | False` |
+| `-mn` | `--model_name` | Optional name of the model to train (e.g., RandomForest, XGB, etc.) | RandomForest |
+| `-fn` | `--fine_tune`  | Enable fine-tuning for the model. Just implemented for RandomForest | False |
+
+
+#### ⚙️ Technical Details 
+
+1. Model Comparison
+
+    - Evaluates multiple candidate models (Linear Regression, Ridge, Lasso, Random Forest, Gradient Boosting, XGBoost) using cross-validatio.
+
+    - Selects the best model based on mean CV score and saves the best model's name in the `artifacts/best_model_name.txt` file.
+
+2. Feature Selection
+
+    - Uses Recursive Feature Elimination (RFE) to find the optimal subset of features.
+    - The number of features to keep can either be passed to the `ModelSelector` object using the `feature_count_` parameter, or left empty to allow the object to determine the optimal number of features automatically.
+
+3. Fine-Tuning
+
+    - Hyperparameter tuning performed on the selected model (Just implemented for Random Forest, since it was the best performing model on our dataset).
+    - If --save_flag is enabled, saves best parameters for reproducibility.
+
+4. Final Training
+
+    - Trains the chosen model on the entire training set using the selected features and best hyperparameters.
+    - If you pass some models other than Random Forest through model_name argument, then this model is trained using default hyperparameters.
+    - Exports the trained model and artifacts to artifacts/ --save_flag is enabled. By default this flag is set to True in `config.training.save_flag`.
+
+ 
+- **Input**: `preprocessed_train_df.csv` 
+- **Output**: Trained model artifacts in the `artifacts/` directory, including best hyperparameters, selected features, final trained model (`final_model.pkl`), etc.
 
 ### 6️⃣ Evaluation
+Evaluates the trained model on the test set and generates comprehensive performance metrics, reports, predictions, and plots.
+
 Run:
 
-bash
-Copy
-Edit
-python evaluate.py
-Input: Trained model + test split
+```bash
+python evaluate.py -s -np "rf_run1"
+```
 
-Output: Metrics (metrics.json) in artifacts/.
+**Arguments for `evaluate.py`:**
+
+| Short | Long        | Description |
+|-------|------------|-------------|
+| `-s`  | `--save`  | Whether to save evaluation results |
+| `-np`  | `--name_prefix`    | Optional prefix for saved evaluation result files|
+
+- **Input:**
+    - Trained model `final_model.pkl` from `artifacts/` if model = None
+    - Preprocessed test set `preprocessed_test_df.csv`
+
+- **Output (saved in logs/):** 
+    - Evaluation report: <name_prefix>_evaluation_report.txt
+    - Metrics: <name_prefix>_evaluation_metrics.csv
+    - Predictions: <name_prefix>_predictions.csv
+    - Evaluation plots: <name_prefix>_evaluation_plots.png
+    - Feature importance plots: <name_prefix>_feature_importance_plot.png
+
+#### ⚙️ Technical Details
+
+1. Main Metrics Computed
+    - R² Score
+    - Mean Absolute Error (MAE)
+    - Root Mean Square Error (RMSE)
+    - Mean Absolute Percentage Error (MAPE)
+    - MAE & RMSE as % of mean salary
+    - Statistical summary: mean actual, mean predicted, residual mean & std
+
+2. Reporting
+    - Generates a human-readable report with interpretations based on R² and MAPE thresholds.
+
+3. Plots
+    - Evaluation plots (e.g., residuals, predicted vs actual)
+    - Feature importance plots (for tree-based models)
+
+4. Saving Results
+    - All outputs are automatically saved with the specified name_prefix if    `--save` is enabled.
 
 ### 7️⃣ Exporting
+Upload the trained model artifacts (model weights, encoders, scalers, etc.) to a Hugging Face model repository.
+
 Run:
 
-bash
-Copy
-Edit
-python export.py
-Output: Final trained model (final_model.pkl) in artifacts/.
+```bash
+python export.py -ri "username/repo-name" --api_token "hf_xxxxx"
+```
+
+**Arguments for `export.py`:**
+
+| Short | Long        | Description |
+|-------|------------|-------------|
+| `-ri`  | `--repo_id`  | Hugging Face repository ID where the model artifacts will be uploaded|
+| -  | `--api_token`    | Hugging Face API token for authentication|
+
+- **Input:** Local artifacts stored in `artifacts/` directory, including:
+    - Final trained model (`final_model.pkl`)
+    - Feature selection metadata (`selected_features.pkl`)
+    - Preprocessing artifacts (e.g., scalers, encoders)
+
+- **Output (saved in logs/):** Artifacts uploaded to the specified Hugging Face repo. Returns a list of URLs for each uploaded file.
+
+
+#### ⚙️ Technical Details
+Artifact Discovery
+
+The Exporter class automatically reads all files in the artifacts/ directory.
+
+Prints a summary of discovered files for verification.
+
+Repository Handling
+
+Ensures the specified Hugging Face repository exists (creates if necessary).
+
+Uploading
+
+Uploads each artifact to the repo with the same filename.
+
+Prints upload progress and final confirmation.
+
+Returned Output
+
+Returns a list of URLs pointing to the uploaded artifacts for easy reference or download.
 
 ###  Serving (Deployment)
 Run:
