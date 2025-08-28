@@ -2,7 +2,9 @@
 
 ## 📌 Overview
 In this project, I designed and implemented a **complete end-to-end machine learning pipeline from scratch to estimate data scientist salaries based on input features.** The pipeline covers **data scraping, data cleaning & EDA, preprocessing, feature engineering, model training, hyperparameter tuning, evaluation, deployment, and building a client-facing API**.  
-Although predicting salaries precisely is inherently noisy, this work demonstrates **technical depth and practical workflow** in a portfolio-ready format. 
+Although predicting salaries precisely is inherently noisy, this work demonstrates **technical depth and practical workflow** in a portfolio-ready format.
+<br>
+**Note:** Here a general overview is provided. More details & the implementation guideline are available in the `docs/` directory.
 
 **Goal:** Showcase **end-to-end data science skills** in a clean, reproducible pipeline.
 
