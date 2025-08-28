@@ -73,20 +73,19 @@ python crawl.py --pages 10 --url "https://example.com/jobs" --file_path "raw_df.
 #### ⚙️ Technical Details  
 - **Framework**: [Selenium](https://www.selenium.dev/) for browser automation  
 - **Browsers Supported**: Firefox
-- **Dynamic Content**: Handled with explicit waits, scrolling, and pop-up management  
-- **Robustness**:  
-  - URL validation before scraping  
-  - Error handling for missing or inconsistent fields  
-  - Configurable depth (`pages` parameter).  
+- **Dynamic Content**: Handled with explicit waits, scrolling, and pop-up management   
 
 **Output:** 
-- Raw job data stored as a **pandas DataFrame**  
-- Exported to:  data/raw_data.csv
+- Raw job data stored in `data/raw_data.csv`
 
 
 ### 2️⃣ Feature Engineering
 
-**Note:** Several features were extracted from job descriptions using LLM APIs, including job industry. The raw data was then processed, manipulated, and saved as `data/raw_df.csv`. The published version is this processed dataset, and further feature engineering can be explored in the accompanying notebook.
+**Note:** Several features were extracted from job descriptions using LLM APIs, including job industry. The raw data was then processed, manipulated, and saved as `data/raw_df.csv`. The published version is this processed dataset, and further feature engineering can be explored in this notebook: 
+
+```bash
+notebooks/data_science_salary_feature_engineering_Public_data.ipynb
+```
 
 #### ⚙️ Technical Details  
 - Implemented in: `Notebooks/data_science_salary_feature_engineering_Public_data.ipynb`  
@@ -97,13 +96,6 @@ python crawl.py --pages 10 --url "https://example.com/jobs" --file_path "raw_df.
   2. Fixing the mixed columns for jobs missing company information (ownership, company_size, revenue)
   3. Transforming location and headquarter features to extract continent (Canada & US preserved as countries)
   4. Transforming salary and extracting the mean_salary
-
-### ▶️ Usage  
-Open and run the feature engineering notebook: 
-
-```bash
-notebooks/data_science_salary_feature_engineering_Public_data.ipynb
-```
 
 
 ### 3️⃣ Exploratory Data Analysis (EDA)
@@ -273,7 +265,7 @@ python export.py -ri "username/repo-name" --api_token "hf_xxxxx"
     - Feature selection metadata (`selected_features.pkl`)
     - Preprocessing artifacts (e.g., scalers, encoders)
 
-- **Output (saved in logs/):** Artifacts uploaded to the specified Hugging Face repo. Returns a list of URLs for each uploaded file for easy reference or download. Each artifact will be uploaded to the repo with the same filename.
+- **Output:** Artifacts uploaded to the specified Hugging Face repo. Returns a list of URLs for each uploaded file for easy reference or download. Each artifact will be uploaded to the repo with the same filename.
 
 
 ### 8️⃣ Serving (Deployment)
