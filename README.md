@@ -68,7 +68,6 @@ The main bottleneck is not preprocessing, feature selection, or model choice—a
 ## 🚀 Next Steps
 - Reframe as **classification** (low/mid/high salary buckets)  
 - Gather **more data** across industries, regions, roles  
-- Explore **NLP embeddings** for job descriptions instead of manual features  
 - Try **stacking/ensembling** models for robustness  
 
 ---
