@@ -11,7 +11,7 @@ This guide explains how to install dependencies and run each phase of the pipeli
        |                   |                 |          |               |              |              |            |
  raw_df.csv      df_feature_engineered.csv   notebook   preprocessed_*   artifacts/    logs/          HF Hub       Gradio UI
  ```
- 
+
 ---
 
 ## 📦 Installation
@@ -134,7 +134,29 @@ python prepare.py -s
 - **Input:** df_feature_engineered.csv (from `config.files.feature_engineered`)
 - **Output:** `preprocessed_train_df.csv` & `preprocessed_test_df.csv` (from `config.files.preprocessed_train` & `config.files.preprocessed_test` respectively) if the `-s` flag is used during the run
 
-<!-- To Do: Add more details about the implemented steps + src_df -->
+#### ⚙️ Technical Details  
+
+1. **Handling Missing Values**  
+   - Imputed missing categorical features with mode & numerical features with median of the train_df
+
+2. **Encoding Categorical Features**  
+   - `seniority_level` converted to an **ordinal variable** (e.g., Intern < Junior < Mid < Senior < Lead) to reflect hierarchy  
+   - Other categorical variables encoded with one-hot encoding  
+
+3. **Skill Processing**  
+   - Extracted individual skills from free-text job descriptions  
+   - Binarized presence/absence of key skills  
+
+4. **Scaling**  
+   - Numerical features standardized using scalers fit **only on `train_df`** (`src_df`)  
+   - The same scalers were applied to the test set to avoid data leakage  
+
+5. **Monotonic Constraints (Attempted)**  
+   - Implemented monotonic constraints to enforce logical salary relationships with certain features (e.g., seniority, experience)  
+   - Constraints did not work effectively in practice and were not used in the final pipeline  
+
+**Reference:**  
+- Preprocessing artifacts (scalers, encoders, selected features) are saved for reproducibility and consistent application on unseen data. 
 
 ### 5️⃣ Model Building & Training
 Train the machine learning models on the preprocessed dataset. You can optionally implement feature selection, compare multiple models, and fine-tune the chosen model.  
