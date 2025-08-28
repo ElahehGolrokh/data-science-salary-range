@@ -9,6 +9,7 @@ from sklearn.metrics import (
     r2_score, 
     mean_absolute_percentage_error
 )
+from sklearn.base import RegressorMixin
 from omegaconf import OmegaConf
 import warnings
 
@@ -51,7 +52,8 @@ class Evaluator:
                  y_test: pd.DataFrame,
                  src_df: pd.DataFrame,
                  save_results: bool = True,
-                 name_prefix: str = None):
+                 name_prefix: str = None,
+                 model: RegressorMixin = None):
         self.config = config
         self.feature_selection = config.inference.feature_selection
         self.X_test = X_test
@@ -59,7 +61,7 @@ class Evaluator:
         self.src_df = src_df
         self.save_results = save_results
         self.name_prefix = name_prefix
-        self.model = None
+        self.model = model
         self.predictions_df_ = None
         self.metrics_ = {}
         self.report_ = None
@@ -69,9 +71,7 @@ class Evaluator:
         Complete evaluation pipeline
         """
         # Use provided model or load from config
-        if model is not None:
-            self.model = model
-        else:
+        if model is None:
             try:
                 self.model = load_object(self.config.files.final_model,
                                          self.config.dirs.artifacts)
