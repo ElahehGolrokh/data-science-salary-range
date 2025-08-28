@@ -1,9 +1,10 @@
 # 🚀 Data Science Salary Estimation  
 
 ## 📌 Overview
-In this project, I designed and implemented a **complete end-to-end machine learning pipeline from scratch to estimate data scientist salaries based on input features.** The pipeline covers **data scraping, data cleaning & EDA, preprocessing, feature engineering, model training, hyperparameter tuning, evaluation, deployment, and building a client-facing API**.  
-Although predicting salaries precisely is inherently noisy, this work demonstrates **technical depth and practical workflow** in a portfolio-ready format.
-<br>
+This project showcases a **full end-to-end Machine Learning pipeline** for estimating data scientist salaries, built from scratch. It covers **data scraping, cleaning & EDA, preprocessing, feature engineering, model training, hyperparameter tuning, evaluation, deployment, and a client-facing Gradio app**.  
+
+While salary prediction is inherently noisy, the focus is on demonstrating **practical ML workflows, deployment, and portfolio-ready engineering skills**.  
+
 **Note:** Here a general overview is provided. More details & the implementation guideline are available in the `docs/` directory.
 
 **Goal:** Showcase **end-to-end data science skills** in a clean, reproducible pipeline.
@@ -74,5 +75,9 @@ The main bottleneck is not preprocessing, feature selection, or model choice—a
 
 ---
 
-## 🎯 Takeaway
-This project demonstrates **end-to-end ML workflow** and practical data science skills, including deployment through a client-facing Gradio app — suitable for a portfolio showcase.
+## ⚖️ License  
+
+This project is licensed under the **MIT License** – you are free to use, modify, and distribute it.  
+
+---
+
