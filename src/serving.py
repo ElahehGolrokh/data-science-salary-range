@@ -59,7 +59,7 @@ class GradioApp:
         self.src_df = load_dataframe(config.files.train_data,
                                      config.dirs.data)
 
-    def launch(self) -> None:
+    def build(self) -> None:
         """
         Launch the Gradio application.
 
@@ -72,7 +72,7 @@ class GradioApp:
         """
         self._load_artifacts()
         app = self._get_interface()
-        app.launch(share=True)
+        return app
 
     def _download_artifacts(self) -> dict:
         """

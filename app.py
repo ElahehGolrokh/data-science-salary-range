@@ -3,13 +3,11 @@ from omegaconf import OmegaConf
 from src.serving import GradioApp
 
 
-config = OmegaConf.load('config.yaml')
+config = OmegaConf.load('private_settings.yaml')
 
-
-def main():
-    app = GradioApp(config)
-    app.launch()
+app = GradioApp(config)
+demo = app.build()
 
 
 if __name__ == "__main__":
-    main()
+    demo.launch(share=True)
