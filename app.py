@@ -3,7 +3,7 @@ from omegaconf import OmegaConf
 from src.serving import GradioApp
 
 
-config = OmegaConf.load('private_settings.yaml')
+config = OmegaConf.load('config.yaml')
 
 app = GradioApp(config)
 demo = app.build()
