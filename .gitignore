@@ -9,3 +9,4 @@ data/train_df.csv
 data/preprocessed_train_df.csv
 data/preprocessed_test_df.csv
 private_settings.yaml
+doc.txt
