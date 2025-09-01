@@ -20,8 +20,10 @@ While salary prediction is inherently noisy, the focus is on demonstrating **pra
 **Note:** Here a general overview is provided. More details & the implementation guideline are available in the `docs/` directory.
 
 **Goal:** Showcase **end-to-end data science skills** in a clean, reproducible pipeline.
+
 ---
 ## 🚀 Live Demo
+[![App Screenshot](images/salary.png)](https://huggingface.co/spaces/elahehgolrokh/ds-salary-estimation)
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Salary%20Estimator-blue)](https://huggingface.co/spaces/elahehgolrokh/ds-salary-estimation)
 
 ---
