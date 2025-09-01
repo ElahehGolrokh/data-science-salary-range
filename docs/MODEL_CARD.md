@@ -19,6 +19,21 @@ It is primarily intended for:
 
 ---
 
+## Features Used
+
+
+- Company size
+- Seniority level (ordinal)
+- Status
+- Location
+- Headquarter
+- Industry
+- Ownership
+- Required skills 
+
+During feature selection, some of the encoded features were removed, and the final model was trained on 15 features.
+---
+
 ## Training Data
 - Raw data collected via web scraping job postings.  
 - Feature engineering included:  
@@ -95,17 +110,3 @@ This section provides visual insights into model behavior and performance.
 - Predictions should not be used for **employment or financial decisions**.  
 - Risk of bias if dataset under-represents certain roles, regions, or industries.  
 
----
-
-## Features Used
-
-
-Job title
-
-Seniority level (ordinal)
-
-Industry
-
-Required skills (encoded)
-
-Location (if available)
