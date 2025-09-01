@@ -69,7 +69,9 @@ This section provides visual insights into model behavior and performance.
 - Highlights trade-offs and justifies final model selection.  
 
 <p align="center">
-  <img src="plots/model_comparison.png" alt="Model Comparison" width="600">
+  <img src="images/r2_comparison.png" alt="Model R2 Score Comparison" width="600">
+  <img src="images/mae_rmse_comparison.png" alt="Model MAE RMSE Comparison" width="600">
+  <img src="images/mape_comparison.png" alt="Model MAPE Comparison" width="600">
 </p>
 ---
 
