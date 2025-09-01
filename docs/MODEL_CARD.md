@@ -51,7 +51,7 @@ This section provides visual insights into model behavior and performance.
 - Helps interpret which factors most strongly influence predicted salaries.  
 
 <p align="center">
-  <img src="../logs/feature_importance_plot.png" alt="Feature Importance" width="600">
+  <img src="../images/feature_importance_plot.png" alt="Feature Importance" width="600">
 </p>
 
 #### 📈 Key Evaluation Plots
@@ -60,7 +60,7 @@ This section provides visual insights into model behavior and performance.
 - **Error distribution** → distribution of prediction errors.  
 
 <p align="center">
-  <img src="../logs/evaluation_plots.png" alt="Predicted vs Actual" width="600">
+  <img src="../images/evaluation_plots.png" alt="Predicted vs Actual" width="600">
 </p>
 
 
