@@ -26,6 +26,21 @@ It is primarily intended for:
   - Converting `seniority_level` to ordinal  
   - Encoding categorical features    
 
+### 📊 Exploratory Data Analysis (EDA)
+
+To better understand the dataset, several EDA plots were generated. These provide insights into salary distribution, the role of seniority, geographic differences, and skill-related trends.  
+
+| Salary by Location | Salary vs. Seniority | Seniority vs. Location |
+|--------------------|----------------------|-------------------------|
+| ![Salary by Location](../images/eda/salary_location.png) | ![Salary vs. Seniority](images/eda/salary_seniority.png) | ![Seniority vs. Location](../images/eda/seniority_location.png) |
+
+| Mean Salary | Salary vs. Status | Status Distribution |
+|-------------|-------------------|---------------------|
+| ![Mean Salary](../images/eda/mean_salary.png) | ![Salary vs. Status](../images/eda/salary_status.png) | ![Status](../images/eda/status.png) |
+
+| Skills Importance | Seniority Levels | Location Distribution |
+|-------------------|------------------|------------------------|
+| ![Skills](../images/eda/skills.png) | ![Seniority Levels](../images/eda/seniority_levels.png) | ![Location](../images/eda/location.png) |
 ---
 
 ## Evaluation Results
