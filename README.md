@@ -17,7 +17,7 @@ This project showcases a **full end-to-end Machine Learning pipeline** for estim
 
 While salary prediction is inherently noisy, the focus is on demonstrating **practical ML workflows, deployment, and portfolio-ready engineering skills**.  
 
-**Note:** Here a general overview is provided. More details & the implementation guideline are available in the `docs/` directory.
+**Note:** Here a general overview is provided. More details abot the model card & the implementation guideline are available in the `docs/` directory.
 
 **Goal:** Showcase **end-to-end data science skills** in a clean, reproducible pipeline.
 
