@@ -32,7 +32,7 @@ To better understand the dataset, several EDA plots were generated. These provid
 
 | Salary by Location | Salary vs. Seniority | Seniority vs. Location |
 |--------------------|----------------------|-------------------------|
-| ![Salary by Location](../images/eda/salary_location.png) | ![Salary vs. Seniority](images/eda/salary_seniority.png) | ![Seniority vs. Location](../images/eda/seniority_location.png) |
+| ![Salary by Location](../images/eda/salary_location.png) | ![Salary vs. Seniority](../images/eda/salary_seniority.png) | ![Seniority vs. Location](../images/eda/seniority_location.png) |
 
 | Mean Salary | Salary vs. Status | Status Distribution |
 |-------------|-------------------|---------------------|
