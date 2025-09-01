@@ -32,6 +32,7 @@ It is primarily intended for:
 - Required skills 
 
 During feature selection, some of the encoded features were removed, and the final model was trained on 15 features.
+
 ---
 
 ## Training Data
