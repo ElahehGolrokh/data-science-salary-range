@@ -22,7 +22,50 @@ warnings.filterwarnings('ignore')
 
 class Evaluator:
     """
-    Evaluates the performance of the trained model on the test set.
+    Evaluate a trained regression model on a test dataset.
+
+    Provides a full evaluation pipeline including prediction,
+    regression metrics, diagnostic plots, feature importance
+    visualization, and result persistence.
+
+    Parameters
+    ----------
+    config : OmegaConf
+        Hydra/OmegaConf configuration object containing paths and settings.
+    X_test : pd.DataFrame
+        Test feature set.
+    y_test : pd.DataFrame or pd.Series
+        True target values for the test set.
+    src_df : pd.DataFrame
+        Original source training dataframe (used for feature alignment).
+    save_results : bool, default=True
+        Whether to save metrics, plots, and reports.
+    name_prefix : str, optional
+        Prefix to prepend to saved filenames (useful for model comparison).
+    model : RegressorMixin, optional
+        Pretrained regression model. If None, the model will be loaded
+        from config.
+
+    Attributes
+    ----------
+    predictions_df_ : pd.DataFrame
+        DataFrame containing actuals, predictions, residuals, and errors.
+    metrics_ : dict of str -> float
+        Dictionary of regression metrics (MAE, RMSE, R², etc.).
+    report_ : str
+        Human-readable evaluation report.
+    evaluation_figure_ : matplotlib.figure.Figure
+        Evaluation plots (residuals, error distributions, etc.).
+    feature_importance_figure_ : matplotlib.figure.Figure or None
+        Feature importance plot if model supports it.
+
+    Methods
+    -------
+    run(model=None)
+        Execute full evaluation pipeline.
+    print_summary()
+        Print concise evaluation metrics to console.
+
 
     >>> Example usage:
 
@@ -81,6 +124,8 @@ class Evaluator:
 
         # Generate predictions
         self.predictions_df_ = self._predict()
+        if self.predictions_df_ is None or self.predictions_df_.empty:
+            raise RuntimeError("Prediction step failed. No results generated.")
         
         # Calculate metrics
         self.metrics_ = self._calculate_metrics()
@@ -89,10 +134,10 @@ class Evaluator:
         self.report_ = self._generate_report()
         
         # Create visualizations
-        self.evaluation_figure = self._create_visualizations()
+        self.evaluation_figure_ = self._create_visualizations()
 
         # Create feature importance plot
-        self.feature_importance_figure = self._get_feature_importance()
+        self.feature_importance_figure_ = self._get_feature_importance()
 
         if self.save_results:
             self._save_results()
@@ -125,13 +170,18 @@ class Evaluator:
         else:
             actual_values = y_test_processed.values
 
+        # Add safeguard for dividing by zero
+        with np.errstate(divide='ignore', invalid='ignore'):
+            percentage_error = np.where(actual_values != 0,
+                                        np.abs((actual_values - y_pred) / actual_values) * 100,
+                                        np.nan)
         predictions_df = pd.DataFrame({
             "Actual": actual_values,
             "Predicted": y_pred,
             "Residual": actual_values - y_pred,
             "Absolute_Error": np.abs(actual_values - y_pred),
-            "Percentage_Error": np.abs((actual_values - y_pred) / actual_values) * 100
-        })       
+            "Percentage_Error": percentage_error
+        })
         return predictions_df
     
     def _calculate_metrics(self) -> dict[str, float]:
@@ -288,17 +338,17 @@ class Evaluator:
                        self.name_prefix)
 
         # Save evaluation plots
-        if self.evaluation_figure:
+        if self.evaluation_figure_:
             fig_path = os.path.join(self.config.dirs.logs,
                                     self.config.files.evaluation_plots)
-            self.evaluation_figure.savefig(fig_path,
+            self.evaluation_figure_.savefig(fig_path,
                                            dpi=300,
                                            bbox_inches='tight')
         # Save feature importance plots
-        if self.feature_importance_figure:
+        if self.feature_importance_figure_:
             fig_path = os.path.join(self.config.dirs.logs,
                                     self.config.files.feature_importance_plot)
-            self.feature_importance_figure.savefig(fig_path,
+            self.feature_importance_figure_.savefig(fig_path,
                                                    dpi=300,
                                                    bbox_inches='tight')
 
@@ -309,7 +359,12 @@ class Evaluator:
                 columns_to_keep = load_object(self.config.files.selected_features,
                                               self.config.dirs.artifacts)
                 self.X_test = select_features(self.X_test, columns_to_keep)
-            print(f'-------------------self.X_test.shape: {self.X_test.shape}')
+
+            if len(self.X_test.columns) != len(self.model.feature_importances_):
+                raise ValueError("Mismatch between model.feature_importances_ length "
+                                f"({len(self.model.feature_importances_)}) and X_test columns "
+                                f"({len(self.X_test.columns)}).")
+
             importance_df = pd.DataFrame({
                 'feature': self.X_test.columns,
                 'importance': self.model.feature_importances_

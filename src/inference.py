@@ -8,6 +8,36 @@ from .utils import load_object, select_features, postprocess_target
 
 
 class InferencePipeline:
+    """
+    Pipeline for running inference using a trained regression model.
+
+    Handles feature selection, preprocessing, prediction, and optional
+    target transformation.
+
+    Parameters
+    ----------
+    config : OmegaConf
+        Hydra/OmegaConf configuration with preprocessing/inference settings.
+    model : RegressorMixin
+        Trained regression model implementing `predict()`.
+    input_df : pd.DataFrame
+        Input features for prediction.
+    src_df : pd.DataFrame
+        Original dataset (used for feature alignment and transformations).
+    transform_target : bool, optional
+        Whether to apply inverse transformation to predictions. If None,
+        defaults to `config.preprocessing.transform_target`.
+    columns_to_keep : list of str, optional
+        Subset of features to use for prediction. If None, will be loaded
+        from artifacts when feature selection is enabled.
+
+    Public Methods
+    --------------
+    run() -> pd.DataFrame
+        Executes the inference pipeline and returns np.ndarray of predicted
+        values (rounded).
+
+    """
     def __init__(self,
                  config: OmegaConf,
                  model: RegressorMixin,
@@ -25,6 +55,7 @@ class InferencePipeline:
 
     def run(self) -> pd.DataFrame:
         """Runs the inference pipeline on the input DataFrame."""
+        self._handle_errors()
         # Preprocess the input data
         if self.feature_selection:
             self._get_columns_to_keep()
@@ -37,13 +68,17 @@ class InferencePipeline:
             predictions = self.model.predict(self.input_df)
 
         except Exception as e:
-            raise ValueError("❌ Error during prediction:", e)
+            raise ValueError(f"❌ Error during prediction: {e}")
 
         # Post-process the predictions
         if self.transform_target:
             predictions = postprocess_target(predictions)
 
         return np.round(predictions)
+
+    def _handle_errors(self):
+        if self.input_df is None or self.input_df.empty:
+            raise ValueError("Input DataFrame is empty or not defined.")
 
     def _get_columns_to_keep(self):
         if self.columns_to_keep is None:
