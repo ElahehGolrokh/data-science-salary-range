@@ -31,8 +31,27 @@ def save_dataframe(df: pd.DataFrame,
 
 
 def load_object(file_path: str,
-                dir_path: str = None) -> None:
-    """Loads a pickled object from a file."""
+                dir_path: str = None) -> object:
+    """
+    Load a pickled object from disk.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the pickle file.
+    dir_path : str, optional
+        Directory containing the file, by default None.
+
+    Returns
+    -------
+    Any
+        The deserialized Python object.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the file does not exist.
+    """
     if dir_path is not None:
         file_path = os.path.join(dir_path, file_path)
     if not os.path.exists(file_path):
@@ -85,9 +104,18 @@ def save_text(content: str,
 
 def build_models_from_config(config_dict: dict,
                              model_map: dict) -> dict:
-    """Build regression models from a configuration dictionary."""
+    """
+    Build regression models from a configuration dictionary.
+
+    Raises
+    ------
+    KeyError
+        If a model name in config_dict is not found in model_map.
+    """
     models = {}
     for name, params in config_dict.items():
+        if name not in model_map.keys():
+            raise KeyError(f"Model {name} not found in model_map")
         models[name] = model_map[name](**params)
     return models
 

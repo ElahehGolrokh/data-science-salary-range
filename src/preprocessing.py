@@ -240,7 +240,7 @@ class Preprocessor:
                     self.one_hot_encoder_ = load_object(self.one_hot_encoder_name,
                                                         self.artifacts_dir_path)
                 except Exception as e:
-                    raise ValueError("Error loading one-hot encoder:", e)
+                    raise ValueError(f"Error loading one-hot encoder: {e}")
             # Transform the test data
             df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
@@ -314,7 +314,7 @@ class Preprocessor:
                     self.mlb_ = load_object(self.mlb_name,
                                             self.artifacts_dir_path)
                 except Exception as e:
-                    raise ValueError("Error loading MultiLabelBinarizer:", e)
+                    raise ValueError(f"Error loading MultiLabelBinarizer: {e}")
             skills_encoded = self.mlb_.transform(input_df['skills'])
 
         # Convert to DataFrames & merge
@@ -341,7 +341,7 @@ class Preprocessor:
                     self.scaler_ = load_object(self.scaler_name,
                                                self.artifacts_dir_path)
                 except Exception as e:
-                    raise ValueError("Error loading scaler:", e)
+                    raise ValueError(f"Error loading scaler: {e}")
             scaled = self.scaler_.transform(input_df[self.numerical_features])
         scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
         input_df = pd.concat([scaled,
@@ -369,6 +369,8 @@ class Preprocessor:
         """
         Applies ordinal encoding to the specified features.
         """
+        if "seniority_level" not in input_df.columns:
+            raise ValueError("seniority_level column missing during ordinal encoding")
         seniority_map = {
             "junior": 1,
             "midlevel": 2,
