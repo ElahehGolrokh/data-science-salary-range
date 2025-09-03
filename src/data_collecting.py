@@ -11,33 +11,57 @@ import requests
 from .utils import save_dataframe
 
 
-COLUMNS = ['url', 'job_title', 'seniority_level', 'role', 'status', 'company', 'location', 'post_date', 'headquarter', 'company_description', 'industry', 'exprience', 'ownership', 'company_size', 'revenue', 'job_description', 'salary']
+COLUMNS = ['url', 'job_title', 'seniority_level', 'role', 'status', 'company',
+           'location', 'post_date', 'headquarter', 'company_description',
+           'industry', 'experience', 'ownership', 'company_size', 'revenue',
+           'job_description', 'salary']
 
 class Crawler:
     """
-    Crawles the url with selenium 
+    Job postings crawler using Selenium + Firefox webdriver.
 
-    ...
+    This class automates browsing of job posting pages, extracts job details,
+    and stores them in a structured DataFrame. Supports cookie banner handling
+    and popup closing.
+
+    Parameters
+    ----------
+    pages : int
+        Maximum number of pages to crawl.
+    url : str
+        Base URL of the job listings page.
+    file_path : str
+        File name for saving the collected data (e.g., "jobs.csv").
+    dir_path : str
+        Directory path where the file will be saved.
+
     Attributes
     ----------
-        browser: comes from selenium:
-                 >>> webdriver.Chrome()
-        pages: max number of pages for seeking for jobs
-        url: website url
-        file_path: file path for saving data
+    job_links : list of str
+        List of collected job posting URLs.
+    jobs_df : pd.DataFrame
+        DataFrame containing extracted job postings.
+    pages : int
+        Number of pages to crawl.
+    url : str
+        Base URL of the job listings page.
+    file_path : str
+        File name for saving the collected data.
+    dir_path : str
+        Directory where the file will be saved.
 
     Public Methods
     --------------
-    run()
+    run() -> dict
+        Executes the crawler, collects job postings, saves them to file,
+        and returns results.
 
-    Private Methods
-    --------------
-    _get_links()
-    _extract_all_job_details()
-    _extract_job_detail()
-    _url_exists()
-    _accept_cookies()
-    _close_popup()
+    Notes
+    -----
+    - Requires `geckodriver` installed and available in PATH.
+    - Runs in headless Firefox mode by default.
+    - Current implementation uses static XPATH locators which may need
+      adjustments if the website changes.
     """
 
     def __init__(self, pages: int,
@@ -105,8 +129,8 @@ class Crawler:
                             href = a.get_attribute("href")
                             if href:
                                 job_links.add(href)
-                        except:
-                            pass
+                        except Exception as e:
+                            print(f"⚠️ Failed to extract link from card: {e}")
 
             else:
                 print(f'The last page = {page - 1}')
@@ -118,7 +142,7 @@ class Crawler:
         for i, link in enumerate(self.job_links):
             if i % 50 == 0:
                 elapsed = time.time() - start_time
-                print(f"Time spent on {i/50}th 50 iterations: {elapsed:.2f} seconds")
+                print(f"Time spent on {i // 50}th 50 iterations: {elapsed:.2f} seconds")
                 start_time = time.time()  # reset timer
             try:
                 data = self._extract_job_detail(driver, link)
@@ -128,8 +152,11 @@ class Crawler:
                 print(f"Failed to extract data from {link}: {e}")
 
         print('----------------------------------')
-        for col in self.jobs_df.columns:
-            print(f"{col}: {self.jobs_df[col].iloc[0]}")
+        if not self.jobs_df.empty:
+            for col in self.jobs_df.columns:
+                print(f"{col}: {self.jobs_df[col].iloc[0]}")
+        else:
+            print("No jobs extracted.")
 
     def _extract_job_detail(self, driver, url):
         driver.get(url)
@@ -204,21 +231,22 @@ class Crawler:
             'headquarter': headquarter,
             'company_description': company_description,
             'industry': None,
-            'exprience': None,
+            'experience': None,
             'ownership': ownership,
             'company_size': company_size,
             'revenue': revenue,
             'job_description': job_description,
             'salary': salary
         }
-
+        
     @staticmethod
-    def _url_exists(url):
-        """Checks whether the url exists"""
+    def _url_exists(url: str) -> bool:
+        """Check whether the given URL is reachable."""
         try:
             response = requests.head(url, allow_redirects=True, timeout=5)
             return response.status_code == 200
-        except:
+        except requests.RequestException as e:
+            print(f"⚠️ URL check failed for {url}: {e}")
             return False
     
     @staticmethod

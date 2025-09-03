@@ -5,19 +5,23 @@ from .utils import load_dataframe
 
 class DataLoader:
     """
-    Utility class to load a dataset from a CSV file and separate features from the target.
+    Utility class to load a dataset from a CSV file and separate
+    features from the target.
 
     Parameters
     ----------
     file_path : str
         name of the CSV file containing the dataset.
-
-    Attributes
-    ----------
     dir_path : str
         path to the directory containing the dataset.
     target : str
         Name of the target column.
+    
+    Public Methods
+    --------------
+    load() -> tuple[pd.DataFrame, pd.Series]
+        Loads the dataset and splits it into features and target.
+
     """
     def __init__(self, config: OmegaConf, file_path: str):
         self.file_path = file_path
