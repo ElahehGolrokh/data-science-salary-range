@@ -7,16 +7,16 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from xgboost import XGBRegressor
 
-
 from .utils import build_models_from_config
+
 
 MODEL_MAP = {
     "LinearRegression": LinearRegression,
     "Lasso": Lasso,
     "Ridge": Ridge,
-    "RandomForest": RandomForestRegressor,
-    "GradientBoosting": GradientBoostingRegressor,
-    "XGB": XGBRegressor,
+    "RandomForestRegressor": RandomForestRegressor,
+    "GradientBoostingRegressor": GradientBoostingRegressor,
+    "XGBRegressor": XGBRegressor,
 }
 
 
@@ -94,16 +94,22 @@ class BaseModelingPipeline(ABC):
         self.best_model_: RegressorMixin | None = None
 
         self.logger = None
-        self._handle_shape_error()
+        self._handle_errors()
         self._setup_logging()
         self._setup_final_models()
 
-    def _handle_shape_error(self):
+    def _handle_errors(self):
         """
         Raises a ValueError if the shapes of the input data do not match.
         """
+        # Handle shape error
         if self.X_train.shape[0] != self.y_train.shape[0]:
             raise ValueError("X_train and y_train must have the same number of samples.")
+
+        # Handle feature selection error
+        if self.feature_selection and self.selected_features_ is not None:
+            if len(self.selected_features_) > self.X_train.shape[1]:
+                raise ValueError("More features are selected than available.")
 
     def _setup_logging(self):
         if self.logging_flag:

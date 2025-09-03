@@ -11,6 +11,8 @@ def load_dataframe(file_path: str, dir_path: str= None) -> pd.DataFrame:
     """Loads a DataFrame from a CSV file."""
     if dir_path is not None:
         file_path = os.path.join(dir_path, file_path)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"No file found at {file_path}")
     return pd.read_csv(file_path)
 
 
@@ -39,8 +41,8 @@ def load_object(file_path: str,
 
 
 def save_object(input_object,
-                        file_name: str,
-                        dir_path: str) -> None:
+                file_name: str,
+                dir_path: str) -> None:
     """Saves the preprocessing and modeling objects to a pickle file."""
     if input_object is None:
         raise ValueError("The object has not been fitted yet. \
@@ -110,6 +112,9 @@ def select_features(df: pd.DataFrame,
                     columns_to_keep: list[str] = None) -> pd.DataFrame:
     """Selects features from the preprocessed input DataFrame."""
     # Reindex ensures missing cols are added with 0, extra cols are dropped
+    for col in columns_to_keep:
+        if col not in df.columns:
+            raise ValueError(f"Column not found in DataFrame: {col}")
     df = df.reindex(columns=columns_to_keep, fill_value=0)
     return df
 

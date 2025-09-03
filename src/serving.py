@@ -140,8 +140,7 @@ class GradioApp:
                 X.append(user_inputs.get(feat, None))  # default None if missing
             return X
         except Exception as e:
-            print(f"⚠️ Error during input vector construction: {e}")
-            return None
+            raise ValueError(f"⚠️ Error during input vector construction: {e}")
 
     def _prepare_inputs(self, user_inputs: dict) -> pd.DataFrame:
         """
@@ -159,7 +158,7 @@ class GradioApp:
         """
         X = self._get_user_inputs(user_inputs)
         if X is None:
-            raise ValueError("⚠️ Error during input vector construction")
+            raise ValueError("⚠️ input vector is None")
         try:
             X = np.array(X).reshape(1, -1)
             X = pd.DataFrame(X, columns=self.features)

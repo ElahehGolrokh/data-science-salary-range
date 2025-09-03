@@ -3,7 +3,6 @@ import os
 import pandas as pd
 
 from kneed import KneeLocator
-from sklearn.base import RegressorMixin
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, KFold
@@ -12,6 +11,8 @@ from sklearn.feature_selection import RFE
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
 from typing import Dict, Callable
+import warnings
+
 from .utils import get_default_model, save_object, \
                    load_object, save_text, \
                    load_text
@@ -53,6 +54,8 @@ class ModelSelector(BaseModelingPipeline):
         Scoring metric for model evaluation.
     rfe_step : int, default=1
         Number of features to remove at each step of RFE.
+    feature_count_ : int, default=None
+        Number of features to select.
 
     Attributes
     ----------
@@ -77,7 +80,7 @@ class ModelSelector(BaseModelingPipeline):
     >>> selector = ModelSelector(config={}, X_train=X, y_train=y)
     >>> selector.run()
     >>> selector.best_model_name_
-    'RandomForest'
+    'RandomForestRegressor'
     """
     def __init__(self,
                  config: dict,
@@ -156,6 +159,9 @@ class ModelSelector(BaseModelingPipeline):
             self.model = RandomForestRegressor()
         mean_scores = []
         for n_features in self.feature_counts:
+            if n_features > self.X_train.shape[1]:
+                raise ValueError(f"Cannot select {n_features} features; "
+                                 f"only {self.X_train.shape[1]} features available.")
             cv = KFold(n_splits=self.cv_splits, shuffle=self.shuffle, random_state=self.random_state)
             rfe = RFE(estimator=self.model,
                       n_features_to_select=n_features,
@@ -169,8 +175,6 @@ class ModelSelector(BaseModelingPipeline):
             mean_scores.append(np.mean(scores))
             self.logger.info("CV score for %s features: %.4f", n_features, np.mean(scores))
         best_feature_count = self._choose_features_from_elbow(mean_scores, self.feature_counts)
-        if len(self.X_train.columns) < best_feature_count:
-            raise ValueError(f"X_train must have at least {best_feature_count} features.")
         return best_feature_count
 
     def _refit_rfe(self) -> list[str]:
@@ -186,11 +190,9 @@ class ModelSelector(BaseModelingPipeline):
         rfe.fit(self.X_train, self.y_train)
         selected_features_ = self.X_train.columns[rfe.support_].tolist()
         # Force certain features to be included
-        # force_to_keep = ['seniority_level_lead',
-        #                  'seniority_level_midlevel',
-        #                  'seniority_level_senior']
         force_to_keep = ['seniority_level']
-        selected_features_ = set(force_to_keep + selected_features_)
+        selected_features_ = selected_features_ + [f for f in force_to_keep if f not in selected_features_]
+
         return list(selected_features_)
 
     # model selection
@@ -215,19 +217,22 @@ class ModelSelector(BaseModelingPipeline):
 
         return comparison_df
 
-    def _get_best_model(self) -> tuple[RegressorMixin, str]:
+    def _get_best_model(self) -> None:
         """
-        Returns the best model based on mean cross-validation score.
+        Sets the best model based on mean cross-validation score.
         """
         if self.logging_flag:
             self.logger.info('Getting the best trained model...')
         comparison_df = self._compare_models()
         self.best_model_name_ = comparison_df.idxmax(axis=1)[0]
-        self.logger.info("The best model based on mean cross-validation score is: %s", self.best_model_name_)
+        self.logger.info("The best model based on mean cross-validation score is: %s",
+                         self.best_model_name_)
 
     @staticmethod
-    def _choose_features_from_elbow(mean_scores: list[float], feature_counts: list[int],
-                                   curve: str = 'concave', direction: str = 'increasing') -> int:
+    def _choose_features_from_elbow(mean_scores: list[float],
+                                    feature_counts: list[int],
+                                    curve: str = 'concave',
+                                    direction: str = 'increasing') -> int:
         """
         Given a list of mean CV scores and corresponding feature counts,
         find the elbow point (best number of features) without plotting.
@@ -329,34 +334,33 @@ class ModelTrainer(BaseModelingPipeline):
                                                       dir_path=self.artifacts_dir_path)
                 self.logger.info("Loaded selected features: %s", self.selected_features_)
             except Exception as e:
-                raise ValueError("selected_features_ is None. You can either " +
-                                 "convert feature_selection = True in the config & then" +
-                                 "run `ModelSelector.run()` to perform feature " +
-                                 "selection or give selected_features_ a default list.")
+                raise ValueError("No selected features found. Either set `feature_selection=True`"
+                                 " in the config & run `ModelSelector.run()`, or provide "
+                                 "`selected_features_`.")
         if self.model_name is None:
             try:
                 self.model_name = load_text(self.best_model_name_file,
                                             dir_path=self.artifacts_dir_path)
             except Exception as e:
-                raise ValueError("model_name_ is None. You can either pass a model name "\
-                                 "or run `ModelSelector.run()` with compare_models = True" \
+                raise ValueError("model_name_ is None. Either pass a model name "
+                                 "or run `ModelSelector.run()` with `compare_models = True`"
                                  " to perform model selection.")
 
         if isinstance(self.model_name , str):
-            if self.model_name == "RandomForest":
+            if self.model_name == "RandomForestRegressor":
                 self.model_ = self._load_model()
             else:
-                # Load models other than RandomForest from final_models_ dict
+                # Load models other than RandomForestRegressor from final_models_ dict
                 self.model_ = self.final_models_[self.model_name]
                 self.logger.info("Loaded model: %s", self.model_name)
                 self.logger.info("This model is fitted with default hyperparameters.")
         elif isinstance(self.model_name, RandomForestRegressor):
             # Then fine-tunning is already run & the best hyperparameters are loaded
             self.model_ = self.model_name
-            self.logger.info("Loaded RandomForest model after fine-tuning with the \
+            self.logger.info("Loaded RandomForestRegressor model after fine-tuning with the \
                              best hyperparameters.")
         else:
-            raise ValueError("Invalid model name.")
+            raise ValueError(f"Invalid model name: {self.model_name}")
 
         # Final fitting step
         self._fit()
@@ -380,13 +384,13 @@ class ModelTrainer(BaseModelingPipeline):
             # ✅ Fine-tuned params found
             best_params = load_object(self.best_params_file,
                                       self.artifacts_dir_path)
-            self.logger.info(f"⚡ Loading fine-tuned RandomForest with params \
+            self.logger.info(f"⚡ Loading fine-tuned RandomForestRegressor with params \
                              from {self.best_params_file}")
             return RandomForestRegressor(**best_params)
         else:
             # ❌ No fine-tuned params → load defaults
             self.logger.warning("⚠️ No fine-tuned params found. Loading default \
-                                RandomForest from config.")
+                                RandomForestRegressor from config.")
             default_model_cfg = self.config.training.default_model
             model_name = default_model_cfg["name"]
             model_params = default_model_cfg.get("params", {})
@@ -405,7 +409,44 @@ class ModelTrainer(BaseModelingPipeline):
 
 class RandomForestFineTuner:
     """
-    Fine-tunes a RandomForestRegressor model using either grid search or random search.
+    Fine-tunes a RandomForestRegressor using grid search or random search.
+
+    This class wraps scikit-learn's GridSearchCV or RandomizedSearchCV
+    for hyperparameter optimization of RandomForestRegressor. It can
+    automatically save the best parameters, reload them, and evaluate
+    the fitted model with custom metrics.
+
+    Parameters
+    ----------
+    config : dict
+        Configuration object (e.g., loaded from YAML/JSON) containing
+        training and preprocessing parameters.
+    search : {"grid", "random"}, default="grid"
+        Type of hyperparameter search to perform.
+    cv : int, default=5
+        Number of cross-validation folds.
+    n_iter : int, default=30
+        Number of parameter settings sampled in randomized search.
+        Ignored if ``search="grid"``.
+    scoring : str, default="r2"
+        Scoring metric for optimization (must be valid sklearn scorer).
+    n_jobs : int, default=-1
+        Number of parallel jobs.
+
+    Attributes
+    ----------
+    param_grid : dict
+        Candidate hyperparameter values.
+    best_model : RandomForestRegressor or None
+        Best fitted model after search.
+    best_params : dict or None
+        Best hyperparameter set found.
+    searcher : GridSearchCV or RandomizedSearchCV or None
+        The underlying search object after fitting.
+    random_state : int
+        Random seed for reproducibility.
+    save_flag : bool
+        Whether to save the best parameters to disk.
 
     >>> Example
     >>> config = {...}
@@ -517,5 +558,9 @@ class RandomForestFineTuner:
         y_pred = self.best_model.predict(X)
         results = dict()
         for metric_name, metric_func in custom_metrics.items():
-            results[metric_name] = metric_func(y_true, y_pred)
+            try:
+                results[metric_name] = metric_func(y_true, y_pred)
+            except Exception as e:
+                results[metric_name] = np.nan
+                warnings.warn(f"Metric {metric_name} failed: {e}")
         return results

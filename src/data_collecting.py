@@ -4,7 +4,6 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import os
 import pandas as pd
 import time
 import requests
@@ -109,14 +108,6 @@ class Crawler:
                         except:
                             pass
 
-                # Locate the scrollable container (e.g. job details pane)
-                # scrollable_div = driver.find_element(
-                #     By.XPATH,
-                #     "//*[starts-with(@class, 'jobs-directory-body_companiesListContainer')]"
-                # )
-                # Scroll to bottom
-                # driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scrollable_div)
-                # time.sleep(2)
             else:
                 print(f'The last page = {page - 1}')
                 break

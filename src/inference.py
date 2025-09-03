@@ -32,8 +32,12 @@ class InferencePipeline:
             self.input_df = select_features(self.input_df,
                                             self.columns_to_keep)
 
-        # Make predictions
-        predictions = self.model.predict(self.input_df)
+        try:
+            # Make predictions
+            predictions = self.model.predict(self.input_df)
+
+        except Exception as e:
+            raise ValueError("❌ Error during prediction:", e)
 
         # Post-process the predictions
         if self.transform_target:

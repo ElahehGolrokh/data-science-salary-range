@@ -1,8 +1,7 @@
-import pandas as pd
-
 from omegaconf import OmegaConf
 
 from .utils import load_dataframe
+
 
 class DataLoader:
     """

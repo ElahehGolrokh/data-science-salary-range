@@ -70,6 +70,7 @@ class Evaluator:
         """
         Complete evaluation pipeline
         """
+        self._handle_errors()
         # Use provided model or load from config
         if model is None:
             try:
@@ -102,6 +103,13 @@ class Evaluator:
         #     'report': report
         # }
 
+    def _handle_errors(self):
+        """Handle errors that may occur during evaluation"""
+        if self.X_test.shape[0] == 0 or self.y_test.shape[0] == 0:
+            raise ValueError("Test set is empty.")
+        if self.y_test.shape[0] != self.X_test.shape[0]:
+            raise ValueError("Test set and labels must have the same number of samples.")
+
     def _predict(self) -> pd.DataFrame:
         """Generate predictions and create comparison dataframe"""
         inference_pipeline = InferencePipeline(self.config,
@@ -123,7 +131,7 @@ class Evaluator:
             "Residual": actual_values - y_pred,
             "Absolute_Error": np.abs(actual_values - y_pred),
             "Percentage_Error": np.abs((actual_values - y_pred) / actual_values) * 100
-        })        
+        })       
         return predictions_df
     
     def _calculate_metrics(self) -> dict[str, float]:

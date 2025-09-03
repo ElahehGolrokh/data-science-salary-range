@@ -105,6 +105,7 @@ class Preprocessor:
                  mlb_: MultiLabelBinarizer = None,
                  scaler_: StandardScaler = None):
         # Store init params
+        self.config = config
         self.save_flag = save_flag
 
         # Parameters from config
@@ -129,6 +130,7 @@ class Preprocessor:
             phase: str=None,
             preprocessed_path: str=None,
             transform_target: bool = None) -> pd.DataFrame:
+        self._handle_errors(input_df, phase)
         if phase != "inference":
             input_df = self._drop_useless_features(input_df)
             input_df = self._impute_missing_values(input_df, src_df)
@@ -145,6 +147,21 @@ class Preprocessor:
         if self.save_flag:
             save_dataframe(input_df, preprocessed_path, self.data_dir_path)
         return input_df
+
+    def _handle_errors(self,
+                       input_df: pd.DataFrame,
+                       phase: str):
+        """Handle errors that may occur during preprocessing"""
+        if phase != "inference":
+            columns = self.config.preprocessing.all_features
+        else:
+            columns = [feat for feat in self.config.preprocessing.all_features
+                        if feat not in self.config.preprocessing.columns_to_drop
+                        and feat not in self.config.preprocessing.target]
+        for col in columns:
+            if col not in input_df.columns:
+                raise ValueError(f"Column not found in input_df: {col}")
+
 
     def _drop_useless_features(self, input_df: pd.DataFrame) -> pd.DataFrame:
         """Drops useless features"""
@@ -207,18 +224,23 @@ class Preprocessor:
         if src_df is None:
             # Initialize OneHotEncoder with drop='first' to avoid multicollinearity
             # and handle_unknown='ignore' to handle potential unseen categories in the test set
-            self.one_hot_encoder_ = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
+            self.one_hot_encoder_ = OneHotEncoder(drop='first',
+                                                  handle_unknown='ignore',
+                                                  sparse_output=False)
             # Fit and transform on the training data
             df_encoded = self.one_hot_encoder_.fit_transform(input_df[self.categorical_features])
             if self.save_flag:
                 save_object(self.one_hot_encoder_,
-                                    self.one_hot_encoder_name,
-                                    self.artifacts_dir_path)
+                            self.one_hot_encoder_name,
+                            self.artifacts_dir_path)
         else:
             if self.one_hot_encoder_ is None:
                 # Load the encoder from the file
-                self.one_hot_encoder_ = load_object(self.one_hot_encoder_name,
-                                                    self.artifacts_dir_path)
+                try:
+                    self.one_hot_encoder_ = load_object(self.one_hot_encoder_name,
+                                                        self.artifacts_dir_path)
+                except Exception as e:
+                    raise ValueError("Error loading one-hot encoder:", e)
             # Transform the test data
             df_encoded = self.one_hot_encoder_.transform(input_df[self.categorical_features])
 
@@ -283,13 +305,16 @@ class Preprocessor:
             skills_encoded = self.mlb_.fit_transform(input_df['skills'])
             if self.save_flag:
                 save_object(self.mlb_,
-                                    self.mlb_name,
-                                    self.artifacts_dir_path)
+                            self.mlb_name,
+                            self.artifacts_dir_path)
         else:
             if self.mlb_ is None:
-                # Load the encoder from the file
-                self.mlb_ = load_object(self.mlb_name,
-                                        self.artifacts_dir_path)
+                try:
+                    # Load the encoder from the file
+                    self.mlb_ = load_object(self.mlb_name,
+                                            self.artifacts_dir_path)
+                except Exception as e:
+                    raise ValueError("Error loading MultiLabelBinarizer:", e)
             skills_encoded = self.mlb_.transform(input_df['skills'])
 
         # Convert to DataFrames & merge
@@ -308,12 +333,15 @@ class Preprocessor:
             scaled = self.scaler_.fit_transform(input_df[self.numerical_features])
             if self.save_flag:
                 save_object(self.scaler_,
-                                    self.scaler_name,
-                                    self.artifacts_dir_path)
+                            self.scaler_name,
+                            self.artifacts_dir_path)
         else:
             if self.scaler_ is None:
-                self.scaler_ = load_object(self.scaler_name,
-                                           self.artifacts_dir_path)
+                try:
+                    self.scaler_ = load_object(self.scaler_name,
+                                               self.artifacts_dir_path)
+                except Exception as e:
+                    raise ValueError("Error loading scaler:", e)
             scaled = self.scaler_.transform(input_df[self.numerical_features])
         scaled = pd.DataFrame(scaled, columns=self.numerical_features, index=input_df.index)
         input_df = pd.concat([scaled,

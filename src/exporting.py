@@ -48,6 +48,8 @@ class Exporter:
 
         # Collect artifact files automatically
         artifacts = [str(p.relative_to(ROOT)) for p in self.artifacts_dir.glob("*") if p.is_file()]
+        if not artifacts:
+            raise ValueError("No artifacts found.")
 
         print("📂 Found artifacts:")
         for f in artifacts:
@@ -65,23 +67,26 @@ class Exporter:
         Returns:
             list[str]: URLs of uploaded files.
         """
-        api = HfApi()
-        # ✅ Ensure repo exists (will not error if already created)
-        api.create_repo(repo_id=self.repo_id, repo_type="model", exist_ok=True)
+        try:
+            api = HfApi()
+            # ✅ Ensure repo exists (will not error if already created)
+            api.create_repo(repo_id=self.repo_id, repo_type="model", exist_ok=True)
 
-        artifacts = self._read_artifacts()
-        uploaded_urls = []
-        for path in artifacts:
-            filename = os.path.basename(path)
-            print(f"📤 Uploading {filename} → {self.repo_id}/{filename} ...")
+            artifacts = self._read_artifacts()
+            uploaded_urls = []
+            for path in artifacts:
+                filename = os.path.basename(path)
+                print(f"📤 Uploading {filename} → {self.repo_id}/{filename} ...")
 
-            url = upload_file(
-                path_or_fileobj=path,
-                path_in_repo=filename,
-                repo_id=self.repo_id,
-                repo_type="model"
-            )
-            uploaded_urls.append(url)
+                url = upload_file(
+                    path_or_fileobj=path,
+                    path_in_repo=filename,
+                    repo_id=self.repo_id,
+                    repo_type="model"
+                )
+                uploaded_urls.append(url)
 
-        print("✅ All artifacts uploaded successfully.")
-        return uploaded_urls
+            print("✅ All artifacts uploaded successfully.")
+            return uploaded_urls
+        except Exception as e:
+            raise ValueError("❌ Error uploading artifacts:", e)
