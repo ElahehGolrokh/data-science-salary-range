@@ -46,6 +46,9 @@ class Exporter:
         print(f'root = {ROOT}')
         self.artifacts_dir = ROOT / self.artifacts_dir
 
+        if not self.artifacts_dir.exists():
+            raise FileNotFoundError(f"Artifacts directory not found: {self.artifacts_dir}")
+
         # Collect artifact files automatically
         artifacts = [str(p.relative_to(ROOT)) for p in self.artifacts_dir.glob("*") if p.is_file()]
         if not artifacts:
@@ -59,10 +62,6 @@ class Exporter:
     def export(self):
         """
         Upload multiple artifacts (model, scalers, encoders, etc.) to a Hugging Face model repo.
-
-        Args:
-        artifact_paths (list[str]): Local file paths to upload.
-        repo_id (str): Hugging Face repo in format "username/repo-name".
 
         Returns:
             list[str]: URLs of uploaded files.
@@ -89,4 +88,4 @@ class Exporter:
             print("✅ All artifacts uploaded successfully.")
             return uploaded_urls
         except Exception as e:
-            raise ValueError("❌ Error uploading artifacts:", e)
+            raise ValueError(f"❌ Error uploading artifacts: {e}")

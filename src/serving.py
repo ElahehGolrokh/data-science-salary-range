@@ -109,6 +109,12 @@ class GradioApp:
         selected features, and best model name.
         """
         downloaded = self._download_artifacts()
+
+        if not all(k in downloaded for k in ["model", "scaler", "mlb",
+                                             "one_hot_encoder", "features",
+                                             "best_model_name"]):
+            raise ValueError("Some required artifacts could not be downloaded.")
+
         self.model_ = load_object(downloaded["model"])
         self.scaler_ = load_object(downloaded["scaler"])
         self.mlb_ = load_object(downloaded["mlb"])
@@ -138,6 +144,8 @@ class GradioApp:
             X = []
             for feat in self.features:
                 X.append(user_inputs.get(feat, None))  # default None if missing
+            if any(v is None for v in X):
+                raise ValueError("Some required input features are missing.")
             return X
         except Exception as e:
             raise ValueError(f"⚠️ Error during input vector construction: {e}")
@@ -162,7 +170,6 @@ class GradioApp:
         try:
             X = np.array(X).reshape(1, -1)
             X = pd.DataFrame(X, columns=self.features)
-            print('X = {}'.format(X))
             preprocessor = Preprocessor(self.config,
                                         save_flag=False,
                                         one_hot_encoder_=self.one_hot_encoder_,
@@ -206,46 +213,10 @@ class GradioApp:
                 print(f"Formatted prediction result: {formatted}")
                 return f"Estimated annual salary: {formatted}"
             except Exception:
-                return f"Estimated annual salary: € {result}"
+                return f"Estimated annual salary: € {np.ravel(result)[0]}"
 
         except Exception as e:
             raise ValueError(f"⚠️ Error during prediction: {e}")
-
-    # def _get_interface(self) -> gr.Interface:
-    #     """
-    #     Build the Gradio interface for interactive inference.
-
-    #     Returns
-    #     -------
-    #     gr.Interface
-    #         Configured Gradio interface object with feature inputs and
-    #         prediction output.
-    #     """
-    #     inputs = []
-    #     for feat in self.features:
-    #         if feat in self.config.preprocessing.numerical_features:
-    #             inputs.append(gr.Number(label=feat))
-    #         elif feat in self.config.preprocessing.categorical_features or \
-    #             feat in self.config.preprocessing.ordinal_features:
-    #             # Get unique categories from the source DataFrame
-    #             categories = self.src_df[feat].dropna().unique().tolist()
-    #             # remove Remote from locations
-    #             if 'Remote' in categories:
-    #                 categories.remove('Remote')
-    #             inputs.append(gr.Dropdown(choices=categories, label=feat))
-    #         else:  # skills
-    #             inputs.append(gr.Textbox(label=feat,
-    #                                      lines=2,
-    #                                      placeholder="Enter text here, each one separated by a comma"))
-    #     app = gr.Interface(
-    #         fn=lambda *args: self._predict(dict(zip(self.features, args))),
-    #         inputs=inputs,
-    #         outputs=gr.Textbox(label="Predicted Salary (Annual, in €)"),
-    #         title=f"Data Science Salary Predictor",
-    #         description="This app uses machine learning to estimate salaries for data science roles. \
-    #                      Try it out with your own profile!"
-    #     )
-    #     return app
 
     def _get_interface(self) -> gr.Blocks:
         """
@@ -270,6 +241,10 @@ class GradioApp:
                         inputs.append(gr.Number(label=feat))
                     elif feat in self.config.preprocessing.categorical_features or \
                         feat in self.config.preprocessing.ordinal_features:
+
+                        if feat not in self.src_df.columns:
+                            raise KeyError(f"Feature {feat} not found in source dataframe.")
+
                         categories = self.src_df[feat].dropna().unique().tolist()
                         if 'Remote' in categories:
                             categories.remove('Remote')
