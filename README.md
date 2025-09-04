@@ -14,6 +14,7 @@ pinned: false
 
 ## 📌 Overview
 This project showcases a **full end-to-end Machine Learning pipeline** for estimating data scientist salaries, built from scratch. It covers **data scraping, cleaning & EDA, preprocessing, feature engineering, model training, hyperparameter tuning, evaluation, deployment, and a client-facing Gradio app**.  
+Additionally, the project includes **inferential statistics analysis** (hypothesis testing & confidence intervals) to derive insights about salaries.
 
 While salary prediction is inherently noisy, the focus is on demonstrating **practical ML workflows, deployment, and portfolio-ready engineering skills**.  
 
@@ -44,6 +45,18 @@ While salary prediction is inherently noisy, the focus is on demonstrating **pra
 
 > ⚠️ **Note on Data Privacy**  
 > To respect the privacy policy of the source platforms, the **exact websites are not disclosed**. Data is also **manipulated, cleaned, and transformed** before being published to avoid sharing raw proprietary content. The file at `data/raw_df.csv` is therefore a **processed version** of the original scraped data.
+
+---
+
+## 📊 Inferential Statistics
+
+We conducted hypothesis testing and confidence interval analysis to explore salary-related questions, including:
+
+1. Whether the true mean salary differs from the claimed $128,000 benchmark.  
+2. Whether senior data scientists earn significantly higher salaries than junior/mid-level peers in the US.  
+3. Whether job location type (remote/hybrid vs. on-site) impacts mean salaries.  
+
+The analysis and results are documented in the `notebooks/data_science_salary_Inferential_statistics.ipynb`.
 
 ---
 

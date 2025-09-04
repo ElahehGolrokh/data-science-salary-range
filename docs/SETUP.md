@@ -277,7 +277,28 @@ python app.py
 
 **Output:** Gradio app running at http://localhost:7860.
 
+---
 
+## 📊 Inferential Statistics
+
+In addition to exploratory analysis and predictive modeling, we applied inferential statistics to validate insights about salaries.  
+This analysis is implemented in [`notebooks/data_science_salary_Inferential_statistics.ipynb`](../notebooks/data_science_salary_Inferential_statistics.ipynb).
+
+### Goals
+We focused on the following hypothesis tests and confidence interval estimations:
+1. **Population Mean Test**: Based on salary aggregators like Indeed and Glassdoor, the mean salary for a Data Scientist in the U.S. is around $128,000 as of May 2024. Does the data supports this claimed value?  
+2. **seniority level effect (t-test)**: Do senior data scientists earn significantly higher mean salaries compared to junior/mid-level roles in the US?  
+3. **Location Effect**: Does working remotely or in a hybrid setup lead to different mean salaries compared to on-site roles?  
+
+### Implementation
+- Statistical tests were performed using `scipy.stats`.  
+- Confidence intervals were computed at a 95% confidence level. 
+
+### Input & Output
+- **Input**: Feature engineered dataset (`data/df_feature_engineered.csv`).  
+- **Output**: Test statistics, p-values, and confidence intervals.  
+
+---
 
 ## 🛠 Notes
 - Configuration: `config.yaml`
