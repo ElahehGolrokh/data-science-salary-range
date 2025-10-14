@@ -30,7 +30,7 @@ While salary prediction is inherently noisy, the focus is on demonstrating **pra
 ---
 ## 💻 Code and Resources Used
 - **Python Version**: 3.9.12  
-- **Packages**: pandas, numpy, scikit-learn, matplotlib, seaborn, selenium, pickle, gradio
+- **Packages**: pandas, numpy, scikit-learn, matplotlib, seaborn, selenium, pickle, gradio, metaflow
 
 ---
 
@@ -70,6 +70,30 @@ The analysis and results are documented in the `notebooks/data_science_salary_In
 - **Hyperparameter tuning** applied to Random Forest  
 - Final Random Forest Regressor trained with best parameters and exported  
 - **Built a client-facing API using Gradio** for interactive model inference 
+
+---
+
+## 🔄 Automated Pipeline Execution
+
+The entire data science workflow — including **data preparation, model training, fine-tuning, and evaluation** — can be orchestrated automatically using the `pipeline.py` script powered by **Metaflow**.
+
+Run the pipeline end-to-end:
+
+    python pipeline.py run --prepare --train --fine-tune
+
+This executes all steps defined in the pipeline:
+- **prepare** → Data splitting and preprocessing  
+- **train** → Feature selection, model training, and optional fine-tuning  
+- **evaluate** → Model evaluation and reporting  
+
+Each stage uses the parameters defined in `config.yaml`, making the process **fully reproducible and configurable**.
+
+> 💡 **Tip:** You can selectively run specific stages by omitting flags.  
+> Example:  
+>
+>     python pipeline.py run --evaluate
+>
+> will only run the evaluation phase.
 
 ---
 

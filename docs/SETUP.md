@@ -279,6 +279,54 @@ python app.py
 
 ---
 
+---
+
+## Automated End-to-End Pipeline
+
+Instead of running each script manually, you can execute the entire workflow using a single Metaflow-powered pipeline. 
+
+> ⚠️ **Note:**  
+> This pipeline is designed primarily for **demonstration purposes**.  
+> To keep it clean and easy to follow, some advanced functionalities — such as **model comparison** during the training phase — were intentionally omitted.  
+> The goal is to present a **minimal yet complete workflow** that clearly illustrates each step of the machine learning lifecycle, from data preparation to fine-tuning and evaluation.
+
+Run:
+
+    python pipeline.py run --prepare --train --fine-tune
+
+**Arguments for `pipeline.py`:**
+
+| Flag | Description |
+|------|--------------|
+| `--prepare` | Run the data splitting and preprocessing step |
+| `--train` | Run model training and feature selection |
+| `--fine-tune` | Apply fine-tuning (currently supports RandomForest) |
+| `--evaluate` | Run model evaluation on the test set |
+| `--save-flag` | Save preprocessed data, trained models, and evaluation results |
+| `--output-dir` | Directory to save processed data and artifacts (default: `data/`) |
+| `--config-path` | Path to configuration file (default: `config.yaml`) |
+
+### ⚙️ Technical Details
+- The pipeline is implemented in `pipeline.py` using [Metaflow](https://metaflow.org/).  
+- Steps: `start → prepare → train → evaluate → end`
+- Automatically manages:
+  - Configuration loading via `config.yaml`
+  - Reproducible random seeds
+  - Intermediate artifact passing between steps
+  - Logging and optional saving to disk  
+
+**Example runs:**
+
+    # Full pipeline with fine-tuning
+    python pipeline.py run --prepare --train --fine-tune
+
+    # Only evaluation phase (assumes preprocessed and trained artifacts exist)
+    python pipeline.py run --evaluate
+
+📌 *This replaces the need to manually call `prepare.py`, `train.py`, and `evaluate.py` separately — while maintaining full compatibility with your config file structure.*
+
+---
+
 ## 📊 Inferential Statistics
 
 In addition to exploratory analysis and predictive modeling, we applied inferential statistics to validate insights about salaries.  
