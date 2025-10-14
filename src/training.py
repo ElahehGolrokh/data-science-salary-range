@@ -3,6 +3,7 @@ import os
 import pandas as pd
 
 from kneed import KneeLocator
+from sklearn.base import RegressorMixin
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import cross_val_score, KFold
@@ -324,7 +325,7 @@ class ModelTrainer(BaseModelingPipeline):
         self.final_model_file = self.config.files.final_model
         self.best_params_file = self.config.files.best_params
 
-    def run(self) -> None:
+    def run(self) -> RegressorMixin:
         """
         Runs the entire pipeline.
         """
@@ -371,6 +372,7 @@ class ModelTrainer(BaseModelingPipeline):
             self.logger.info("Saved best model to %s", self.final_model_file)
         self.logger.info('Pipeline execution completed successfully with %s features. \n' \
                          'selected_features: %s', len(self.selected_features_), self.selected_features_)
+        return self.model_
 
     def _load_model(self) -> RandomForestRegressor:
         """

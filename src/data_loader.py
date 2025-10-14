@@ -1,4 +1,5 @@
 from omegaconf import OmegaConf
+import pandas as pd
 
 from .utils import load_dataframe
 
@@ -23,12 +24,15 @@ class DataLoader:
         Loads the dataset and splits it into features and target.
 
     """
-    def __init__(self, config: OmegaConf, file_path: str):
+    def __init__(self,
+                 config: OmegaConf,
+                 file_path: str = None,
+                 ):
         self.file_path = file_path
         self.dir_path = config.dirs.data
         self.target = config.preprocessing.target[0]
 
-    def load(self):
+    def load(self, df: pd.DataFrame = None):
         """
         Load the dataset from the CSV file and split into features and target.
 
@@ -39,8 +43,11 @@ class DataLoader:
         y : pandas.Series
             Target variable corresponding to the target column.
         """
-        df = load_dataframe(file_path=self.file_path,
-                            dir_path=self.dir_path)
+        if df is None:
+            if self.file_path is None:
+                raise ValueError("File path must be specified.")
+            df = load_dataframe(file_path=self.file_path,
+                                dir_path=self.dir_path)
         X = df.drop(columns=[self.target], axis=1)
         y = df[self.target]
         return X, y
